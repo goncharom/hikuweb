@@ -1369,3 +1369,109 @@ Created commit 8edbd87: "feat: add per-domain rate limiter with token bucket alg
 - Added 1 file: src/hikuweb/services/rate_limiter.py (106 lines)
 - 106 insertions total
 - Pre-commit hooks passed: ruff check and ruff-format both successful
+---
+## [23] FastAPI App + Health Endpoint - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T13:41:53-08:00
+
+### What I did
+Created comprehensive test suite for FastAPI health endpoint following TDD RED phase. Wrote 4 failing test methods covering health check responses, authentication-free access, and OpenAPI documentation availability. Updated tests/conftest.py with a TestClient fixture for API endpoint testing.
+
+### Output/Results
+Created tests/test_api_health.py with 33 lines containing 4 test methods:
+
+**Test Coverage:**
+1. test_health_returns_200 - Verifies GET /health returns 200 status code
+2. test_health_returns_status_and_version - Ensures response contains {"status": "healthy", "version": "0.1.0"}
+3. test_health_no_auth_required - Confirms endpoint is accessible without X-API-Key header
+4. test_openapi_docs_available - Verifies OpenAPI docs are available at /docs
+
+Updated tests/conftest.py:
+- Added TestClient fixture that imports and wraps hikuweb.main.app
+- Yields TestClient instance for making HTTP requests in tests
+
+**Test Results (TDD RED - Expected Failures):**
+- All 4 tests FAIL with ModuleNotFoundError as expected
+- Error: "No module named 'hikuweb.main'"
+- This is the correct behavior for TDD RED phase - tests define the API contract before implementation
+
+### Evals Run
+1. ✓ file_exists: tests/test_api_health.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: /health pattern found in tests
+4. ✓ file_contains: healthy pattern found in tests
+5. ✓ file_contains: TestClient import in conftest.py
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase creates failing tests that document expected API behavior before implementation
+- FastAPI TestClient provides convenient HTTP client for testing without running a server
+- Health endpoints should not require authentication for monitoring and load balancer checks
+- OpenAPI docs at /docs are a key FastAPI feature and should be tested
+- ModuleNotFoundError is the expected failure mode when main.py doesn't exist yet
+- Fixture pattern in conftest.py enables reusable test clients across all API test modules
+- The test structure follows existing patterns from previous tasks
+
+### New tasks created
+None - task 24 is already defined for implementation phase (TDD GREEN)
+
+---
+## [24] FastAPI App + Health Endpoint - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Implemented the FastAPI application skeleton with health endpoint following TDD GREEN phase to make all 4 tests from task 23 pass. Created src/hikuweb/main.py as the FastAPI app entry point with lifespan management and src/hikuweb/api/routes.py with the health check endpoint.
+
+### Output/Results
+Created src/hikuweb/main.py with 57 lines:
+- FastAPI application with title="hikuweb", description, version="0.1.0"
+- Lifespan context manager for startup/shutdown events:
+  - Startup: Initializes database tables (api_keys and extraction_logs)
+  - Shutdown: Cleanup (currently empty)
+- CORS middleware configured to allow all origins for MVP
+- Includes router from routes.py
+- Uses modern Python 3.11+ AsyncGenerator from collections.abc (instead of typing)
+
+Created src/hikuweb/api/routes.py with 41 lines:
+- APIRouter instance for route organization
+- HealthResponse Pydantic model with status and version fields
+- GET /health endpoint returning {"status": "healthy", "version": "0.1.0"}
+- No authentication required for health check
+- Comprehensive docstrings with example responses
+
+All 4 tests pass:
+1. test_health_returns_200 - Health check returns 200 status
+2. test_health_returns_status_and_version - Response contains correct status and version
+3. test_health_no_auth_required - Endpoint accessible without authentication
+4. test_openapi_docs_available - OpenAPI docs available at /docs
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/main.py exists
+2. ✓ file_exists: src/hikuweb/api/routes.py exists
+3. ✓ file_contains: ABOUTME comment present in main.py
+4. ✓ file_contains: FastAPI import present in main.py
+5. ✓ file_contains: health endpoint defined in routes.py
+6. ✓ tests_pass: All 4 tests in tests/test_api_health.py pass
+
+All 6 evals passed successfully.
+
+### Learnings
+- Ruff UP035 rule prefers collections.abc.AsyncGenerator over typing.AsyncGenerator (Python 3.11+)
+- Pre-commit hooks auto-fixed unused imports in test file (pytest and TestClient)
+- Lifespan context manager pattern is the modern way to handle FastAPI startup/shutdown
+- CORS middleware must be added before including routers
+- TestClient provides automatic database initialization via lifespan context manager
+- Health endpoints are critical for monitoring, load balancers, and container orchestration
+- Ruff auto-fixed 4 linting issues (imports) during pre-commit hook
+- All tests passed immediately after implementation (proper TDD GREEN phase)
+
+### New tasks created
+None - task 25 is already defined for authentication dependency tests (TDD RED phase)
+
+### Git commit
+Created commit 84fff7c: "feat: add FastAPI app skeleton with health endpoint"
+- Added 3 files: src/hikuweb/main.py (57 lines), src/hikuweb/api/routes.py (41 lines), tests/test_api_health.py (33 lines from task 23)
+- Modified tests/conftest.py (added client fixture)
+- 139 insertions, 1 deletion
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+
