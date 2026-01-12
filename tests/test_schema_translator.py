@@ -1,5 +1,5 @@
 # ABOUTME: Tests for JSON Schema to Pydantic model translation.
-# ABOUTME: Verifies primitive type mapping, required/optional handling.
+# ABOUTME: Verifies primitive type mapping, arrays, required/optional handling.
 # ruff: noqa: N806
 
 import pytest
@@ -252,3 +252,103 @@ class TestEdgeCases:
         Model = json_schema_to_pydantic(schema)
         instance = Model()
         assert instance is not None
+
+
+class TestArrayTypes:
+    """Tests for array type translations."""
+
+    def test_array_of_strings(self):
+        """Should translate array of strings to list[str] field."""
+        schema = {
+            "type": "object",
+            "properties": {"tags": {"type": "array", "items": {"type": "string"}}},
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(tags=["a", "b", "c"])
+        assert instance.tags == ["a", "b", "c"]
+
+    def test_array_of_integers(self):
+        """Should translate array of integers to list[int] field."""
+        schema = {
+            "type": "object",
+            "properties": {"scores": {"type": "array", "items": {"type": "integer"}}},
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(scores=[1, 2, 3])
+        assert instance.scores == [1, 2, 3]
+
+    def test_array_of_numbers(self):
+        """Should translate array of numbers to list[float] field."""
+        schema = {
+            "type": "object",
+            "properties": {"prices": {"type": "array", "items": {"type": "number"}}},
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(prices=[1.5, 2.7, 3.9])
+        assert instance.prices == [1.5, 2.7, 3.9]
+
+    def test_array_of_booleans(self):
+        """Should translate array of booleans to list[bool] field."""
+        schema = {
+            "type": "object",
+            "properties": {"flags": {"type": "array", "items": {"type": "boolean"}}},
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(flags=[True, False, True])
+        assert instance.flags == [True, False, True]
+
+    def test_array_without_items(self):
+        """Should default to list[Any] when items not specified."""
+        schema = {
+            "type": "object",
+            "properties": {"data": {"type": "array"}},
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(data=[1, "two", True])
+        assert len(instance.data) == 3
+        assert instance.data[0] == 1
+        assert instance.data[1] == "two"
+        assert instance.data[2] is True
+
+    def test_required_array_field(self):
+        """Should enforce required array field."""
+        schema = {
+            "type": "object",
+            "properties": {"items": {"type": "array", "items": {"type": "string"}}},
+            "required": ["items"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        with pytest.raises(ValidationError):
+            Model()
+
+    def test_optional_array_field_defaults_to_none(self):
+        """Should default optional array field to None."""
+        schema = {
+            "type": "object",
+            "properties": {"tags": {"type": "array", "items": {"type": "string"}}},
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model()
+        assert instance.tags is None
+
+    def test_validates_array_data_correctly(self):
+        """Should validate array element types."""
+        schema = {
+            "type": "object",
+            "properties": {"scores": {"type": "array", "items": {"type": "integer"}}},
+            "required": ["scores"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(scores=[1, 2, 3])
+        assert instance.scores == [1, 2, 3]
+
+    def test_rejects_non_array_for_array_field(self):
+        """Should reject non-array data for array field."""
+        schema = {
+            "type": "object",
+            "properties": {"tags": {"type": "array", "items": {"type": "string"}}},
+            "required": ["tags"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        with pytest.raises(ValidationError):
+            Model(tags="not_an_array")

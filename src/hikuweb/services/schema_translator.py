@@ -1,5 +1,5 @@
 # ABOUTME: Translates JSON Schema definitions to Pydantic models.
-# ABOUTME: Supports primitive types with required/optional field handling.
+# ABOUTME: Supports primitive types and arrays with required/optional field handling.
 
 from typing import Any
 
@@ -13,7 +13,7 @@ TYPE_MAP = {
 }
 
 
-def _map_primitive_type(prop: dict) -> type:
+def _map_primitive_type(prop: dict) -> Any:
     """Map JSON Schema type to Python type.
 
     Args:
@@ -22,7 +22,29 @@ def _map_primitive_type(prop: dict) -> type:
     Returns:
         Python type corresponding to the JSON Schema type.
     """
-    return TYPE_MAP.get(prop.get("type"), Any)
+    prop_type = prop.get("type")
+    if prop_type is None:
+        return Any
+    return TYPE_MAP.get(prop_type, Any)
+
+
+def _get_field_type(prop: dict) -> Any:
+    """Get field type including array support.
+
+    Args:
+        prop: Property definition from JSON Schema.
+
+    Returns:
+        Python type for the field (primitive or list[T]).
+    """
+    prop_type = prop.get("type")
+
+    if prop_type == "array":
+        items = prop.get("items", {})
+        inner_type = _map_primitive_type(items)
+        return list[inner_type]
+
+    return _map_primitive_type(prop)
 
 
 def json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> type:
@@ -52,7 +74,7 @@ def json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> t
 
     field_definitions = {}
     for name, prop in properties.items():
-        field_type = _map_primitive_type(prop)
+        field_type = _get_field_type(prop)
 
         if name in required:
             # Required field: no default value (use ... Ellipsis)
