@@ -1,0 +1,473 @@
+{
+  "id": "1",
+  "desc": "PHASE 1 - PROMPT 1: Project Initialization\n\nWHAT: Initialize the hikuweb project structure with uv package manager.\n\nWHERE: Project root /home/kyototech/projects/hikuweb\n\nCONTEXT: hikuweb is a FastAPI REST API that exposes hikugen (an AI-powered web scraping library) as a service. This is the foundation for all subsequent tasks.\n\nREQUIREMENTS:\n1. Create pyproject.toml with:\n   - name: \"hikuweb\"\n   - version: \"0.1.0\"\n   - description: \"REST API service for AI-powered web scraping with hikugen\"\n   - requires-python: \">=3.11\"\n   - dependencies: fastapi>=0.115.0, uvicorn>=0.32.0, pydantic>=2.10.0, pydantic-settings>=2.6.0, httpx>=0.28.0, hikugen (install via `uv add hikugen`)\n   - dev dependencies in [project.optional-dependencies] dev: pytest>=8.0.0, pytest-asyncio>=0.24.0, ruff>=0.8.0\n\n2. Create folder structure:\n   - src/hikuweb/__init__.py (with __version__ = \"0.1.0\" and 2-line ABOUTME comment)\n   - src/hikuweb/api/__init__.py (empty with ABOUTME)\n   - src/hikuweb/services/__init__.py (empty with ABOUTME)\n   - src/hikuweb/db/__init__.py (empty with ABOUTME)\n   - tests/__init__.py (empty)\n   - tests/conftest.py (empty for now)\n\n3. Create pytest.ini with: testpaths = tests, asyncio_mode = auto, pythonpath = src\n\n4. ALL source files MUST start with 2-line ABOUTME comment explaining file purpose (format: \"# ABOUTME: line1\\n# ABOUTME: line2\")\n\n5. Run: uv sync && uv run pytest (should pass with \"no tests collected\")\n\nCONSTRAINTS:\n- Do NOT create any other files\n- Use uv as package manager\n- Follow ABOUTME comment convention on all .py files\n\nCOMMIT: After successful completion with message like \"feat: initialize project structure with pyproject.toml and folder layout\"",
+  "deps": [],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "pyproject.toml"},
+    {"type": "file_exists", "path": "src/hikuweb/__init__.py"},
+    {"type": "file_exists", "path": "src/hikuweb/api/__init__.py"},
+    {"type": "file_exists", "path": "src/hikuweb/services/__init__.py"},
+    {"type": "file_exists", "path": "src/hikuweb/db/__init__.py"},
+    {"type": "file_exists", "path": "tests/__init__.py"},
+    {"type": "file_exists", "path": "tests/conftest.py"},
+    {"type": "file_exists", "path": "pytest.ini"},
+    {"type": "file_contains", "path": "pyproject.toml", "pattern": "hikuweb"},
+    {"type": "file_contains", "path": "pyproject.toml", "pattern": "fastapi"},
+    {"type": "file_contains", "path": "src/hikuweb/__init__.py", "pattern": "ABOUTME"},
+    {"type": "cmd", "run": "cd /home/kyototech/projects/hikuweb && uv sync && uv run pytest --collect-only 2>&1 | grep -E '(no tests|collected)' || true"}
+  ]
+}
+
+{
+  "id": "2",
+  "desc": "PHASE 1 - PROMPT 2: Tooling Setup\n\nWHAT: Set up pre-commit hooks with ruff linter/formatter and create AGENTS.md documentation.\n\nWHERE:\n- pyproject.toml (add ruff config)\n- .pre-commit-config.yaml (new file)\n- AGENTS.md (new file)\n\nCONTEXT: Development tooling ensures code quality and consistency across the project. Ruff is used for both linting and formatting.\n\nREQUIREMENTS:\n1. Add ruff configuration to pyproject.toml:\n   [tool.ruff]\n   line-length = 100\n   target-version = \"py311\"\n   src = [\"src\", \"tests\"]\n\n   [tool.ruff.lint]\n   select = [\"E\", \"F\", \"I\", \"N\", \"W\", \"UP\", \"B\", \"C4\", \"SIM\"]\n   ignore = [\"E501\"]\n\n   [tool.ruff.format]\n   quote-style = \"double\"\n\n2. Create .pre-commit-config.yaml with ruff hooks:\n   - ruff check --fix\n   - ruff format\n\n3. Create AGENTS.md with project conventions:\n   - Quick reference commands (uv sync, pytest, ruff)\n   - Project structure overview\n   - Code style guidelines: ABOUTME comments, import ordering (stdlib, third-party, local), type annotations required, Google-style docstrings, naming conventions\n   - Testing guidelines (TDD, fixtures, mocking)\n   - Environment variables section (OPENROUTER_API_KEY, DATABASE_PATH, RATE_LIMIT_REQUESTS_PER_SECOND, ROBOTS_CACHE_TTL_SECONDS)\n\n4. Run: pre-commit install && pre-commit run --all-files\n\n5. Fix any linting issues in existing files\n\nCONSTRAINTS:\n- All files must follow ABOUTME comment convention\n- pre-commit hooks must pass\n\nCOMMIT: After successful completion with message like \"feat: add ruff tooling and pre-commit hooks\"",
+  "deps": ["1"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": ".pre-commit-config.yaml"},
+    {"type": "file_exists", "path": "AGENTS.md"},
+    {"type": "file_contains", "path": "pyproject.toml", "pattern": "tool.ruff"},
+    {"type": "file_contains", "path": ".pre-commit-config.yaml", "pattern": "ruff"},
+    {"type": "cmd", "run": "cd /home/kyototech/projects/hikuweb && uv run ruff check src/ tests/ 2>&1 | grep -E '(error|All checks passed)' || echo 'ruff check completed'"}
+  ]
+}
+
+{
+  "id": "3",
+  "desc": "PHASE 2 - PROMPT 3: Configuration Management - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for configuration management using pydantic-settings.\n\nWHERE: tests/test_config.py (new file)\n\nCONTEXT: Following TDD, we write tests FIRST before implementation. The config module will use pydantic-settings to load environment variables with defaults.\n\nREQUIREMENTS - Write tests for:\n1. Settings loads default values when no env vars set\n2. Settings loads DATABASE_PATH from environment (default: \"hikuweb.db\")\n3. Settings loads OPENROUTER_API_KEY from environment (no default, optional)\n4. Settings loads RATE_LIMIT_REQUESTS_PER_SECOND from environment (default: 1.0)\n5. Settings loads ROBOTS_CACHE_TTL_SECONDS from environment (default: 3600)\n6. Settings has a computed property for database URL\n\nTEST STRUCTURE:\n```python\nclass TestSettings:\n    \"\"\"Tests for configuration management.\"\"\"\n    \n    def test_default_values_when_no_env_vars(self):\n        \"\"\"Should use defaults when no environment variables are set.\"\"\"\n        # Arrange/Act/Assert pattern\n    \n    def test_loads_database_path_from_env(self):\n        \"\"\"Should load DATABASE_PATH from environment.\"\"\"\n    # ... etc\n```\n\nCONSTRAINTS:\n- Tests MUST fail initially (import errors are expected)\n- Use pytest fixtures for environment variable manipulation\n- Add ABOUTME comment to test file\n- Use monkeypatch or os.environ for env var tests\n\nVERIFICATION: Run `uv run pytest tests/test_config.py -v` - tests should FAIL (this is expected in TDD RED phase)",
+  "deps": ["2"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_config.py"},
+    {"type": "file_contains", "path": "tests/test_config.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_config.py", "pattern": "def test_"},
+    {"type": "file_contains", "path": "tests/test_config.py", "pattern": "DATABASE_PATH"},
+    {"type": "file_contains", "path": "tests/test_config.py", "pattern": "OPENROUTER_API_KEY"}
+  ]
+}
+
+{
+  "id": "4",
+  "desc": "PHASE 2 - PROMPT 3: Configuration Management - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement configuration module to make tests pass.\n\nWHERE: src/hikuweb/config.py (new file)\n\nCONTEXT: Now that tests exist and fail, implement the minimal code to make them pass.\n\nREQUIREMENTS:\n1. Create Settings class using pydantic_settings.BaseSettings\n2. Fields:\n   - database_path: str = \"hikuweb.db\"\n   - openrouter_api_key: Optional[str] = None\n   - rate_limit_requests_per_second: float = 1.0\n   - robots_cache_ttl_seconds: int = 3600\n3. Add model_config with env_file = \".env\" support\n4. Add computed property/method for database_url if needed\n5. Create get_settings() function that returns Settings instance (can use lru_cache for singleton)\n\nIMPLEMENTATION PATTERN:\n```python\n# ABOUTME: Configuration management for hikuweb using pydantic-settings.\n# ABOUTME: Loads settings from environment variables with sensible defaults.\n\nfrom functools import lru_cache\nfrom pydantic_settings import BaseSettings\n\nclass Settings(BaseSettings):\n    # ... fields\n    \n    model_config = {\"env_file\": \".env\", \"extra\": \"ignore\"}\n\n@lru_cache\ndef get_settings() -> Settings:\n    return Settings()\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_config.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/config.py tests/test_config.py\n3. Run: uv run ruff format src/hikuweb/config.py tests/test_config.py\n\nCOMMIT: After tests pass with message like \"feat: add configuration management with pydantic-settings\"",
+  "deps": ["3"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/config.py"},
+    {"type": "file_contains", "path": "src/hikuweb/config.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/config.py", "pattern": "BaseSettings"},
+    {"type": "file_contains", "path": "src/hikuweb/config.py", "pattern": "database_path"},
+    {"type": "tests_pass", "paths": ["tests/test_config.py"]}
+  ]
+}
+
+{
+  "id": "5",
+  "desc": "PHASE 2 - PROMPT 4: Database Connection - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for SQLite database connection manager.\n\nWHERE: tests/test_db_connection.py (new file)\n\nCONTEXT: Following TDD, write tests first. The connection manager will handle SQLite connections with context management.\n\nREQUIREMENTS - Write tests for:\n1. Database connection can be created with path\n2. Database connection works as context manager (__enter__/__exit__)\n3. Connection is closed after context exits\n4. get_db_connection() returns working connection\n5. In-memory database works (\":memory:\")\n6. Tables can be created and queried\n7. execute() method runs queries\n8. executemany() method runs batch operations\n9. fetchone() and fetchall() methods work\n10. Commits and rollbacks are handled properly\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for SQLite database connection manager.\n# ABOUTME: Verifies context management, queries, and connection lifecycle.\n\nclass TestDatabaseConnection:\n    \"\"\"Tests for database connection manager.\"\"\"\n    \n    def test_connection_created_with_path(self):\n        \"\"\"Should create connection with given path.\"\"\"\n    \n    def test_context_manager_closes_connection(self):\n        \"\"\"Should close connection when context exits.\"\"\"\n    # ... etc\n```\n\nCONSTRAINTS:\n- Tests MUST fail initially\n- Use temporary files or :memory: for test databases\n- Add ABOUTME comment\n\nVERIFICATION: Run `uv run pytest tests/test_db_connection.py -v` - tests should FAIL",
+  "deps": ["4"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_db_connection.py"},
+    {"type": "file_contains", "path": "tests/test_db_connection.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_db_connection.py", "pattern": "def test_"},
+    {"type": "file_contains", "path": "tests/test_db_connection.py", "pattern": "context"},
+    {"type": "file_contains", "path": "tests/test_db_connection.py", "pattern": "memory"}
+  ]
+}
+
+{
+  "id": "6",
+  "desc": "PHASE 2 - PROMPT 4: Database Connection - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement SQLite connection manager to make tests pass.\n\nWHERE:\n- src/hikuweb/db/connection.py (new file)\n- tests/conftest.py (update with fixtures)\n\nCONTEXT: Implement database connection with context management.\n\nREQUIREMENTS:\n1. Create DatabaseConnection class:\n   - __init__(self, db_path: str)\n   - __enter__ and __exit__ for context manager\n   - execute(query: str, params: tuple = ()) -> sqlite3.Cursor\n   - executemany(query: str, params_list: list) -> sqlite3.Cursor\n   - fetchone() -> Optional[tuple]\n   - fetchall() -> list[tuple]\n   - commit() and rollback() methods\n   - Properly close connection in __exit__\n\n2. Create get_db_connection(db_path: str) -> DatabaseConnection function\n\n3. Update tests/conftest.py:\n   - Add @pytest.fixture for in-memory database connection\n   - This fixture will be reused by other test modules\n\nIMPLEMENTATION:\n```python\n# ABOUTME: SQLite database connection manager with context management.\n# ABOUTME: Provides execute, fetchone, fetchall methods for database operations.\n\nimport sqlite3\nfrom typing import Optional\n\nclass DatabaseConnection:\n    def __init__(self, db_path: str):\n        self.db_path = db_path\n        self._conn: Optional[sqlite3.Connection] = None\n        self._cursor: Optional[sqlite3.Cursor] = None\n    # ... implement methods\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_db_connection.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/db/ tests/test_db_connection.py\n3. Run: uv run ruff format src/hikuweb/db/ tests/test_db_connection.py\n\nCOMMIT: After tests pass with message like \"feat: add SQLite connection manager with context management\"",
+  "deps": ["5"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/db/connection.py"},
+    {"type": "file_contains", "path": "src/hikuweb/db/connection.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/db/connection.py", "pattern": "DatabaseConnection"},
+    {"type": "file_contains", "path": "src/hikuweb/db/connection.py", "pattern": "__enter__"},
+    {"type": "file_contains", "path": "tests/conftest.py", "pattern": "fixture"},
+    {"type": "tests_pass", "paths": ["tests/test_db_connection.py"]}
+  ]
+}
+
+{
+  "id": "7",
+  "desc": "PHASE 2 - PROMPT 5: API Keys Table - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for api_keys table schema and CRUD operations.\n\nWHERE: tests/test_db_api_keys.py (new file)\n\nCONTEXT: The api_keys table stores hashed API keys for authentication. We store hash, not raw keys.\n\nREQUIREMENTS - Write tests for:\n1. create_api_keys_table() creates the table\n2. insert_api_key() stores a new key record and returns id\n3. get_api_key_by_hash() retrieves key by hash\n4. get_api_key_by_id() retrieves key by ID\n5. update_last_used() updates the last_used_at timestamp\n6. deactivate_api_key() sets is_active to False\n7. list_api_keys() returns all keys (for admin use)\n8. Duplicate key_hash is rejected (unique constraint)\n\nTABLE SCHEMA to test against:\n- id: INTEGER PRIMARY KEY AUTOINCREMENT\n- key_hash: TEXT UNIQUE NOT NULL\n- name: TEXT NOT NULL (friendly name)\n- created_at: TEXT NOT NULL (ISO timestamp)\n- last_used_at: TEXT (nullable)\n- is_active: INTEGER NOT NULL DEFAULT 1\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for api_keys table CRUD operations.\n# ABOUTME: Verifies table creation, insert, query, update, and constraints.\n\nclass TestApiKeysTable:\n    def test_create_table(self, db_connection):\n        \"\"\"Should create api_keys table.\"\"\"\n    \n    def test_insert_api_key(self, db_connection):\n        \"\"\"Should insert and return key id.\"\"\"\n    # ... etc\n```\n\nCONSTRAINTS:\n- Use the db_connection fixture from conftest.py\n- Tests MUST fail initially\n\nVERIFICATION: Run `uv run pytest tests/test_db_api_keys.py -v` - tests should FAIL",
+  "deps": ["6"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_db_api_keys.py"},
+    {"type": "file_contains", "path": "tests/test_db_api_keys.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_db_api_keys.py", "pattern": "create_api_keys_table"},
+    {"type": "file_contains", "path": "tests/test_db_api_keys.py", "pattern": "insert_api_key"},
+    {"type": "file_contains", "path": "tests/test_db_api_keys.py", "pattern": "get_api_key_by_hash"}
+  ]
+}
+
+{
+  "id": "8",
+  "desc": "PHASE 2 - PROMPT 5: API Keys Table - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement api_keys table and CRUD operations to make tests pass.\n\nWHERE: src/hikuweb/db/api_keys.py (new file)\n\nCONTEXT: Implement the api_keys table for storing hashed API keys.\n\nREQUIREMENTS:\n1. Implement functions:\n   - create_api_keys_table(conn: DatabaseConnection) -> None\n   - insert_api_key(conn, key_hash: str, name: str) -> int\n   - get_api_key_by_hash(conn, key_hash: str) -> Optional[dict]\n   - get_api_key_by_id(conn, key_id: int) -> Optional[dict]\n   - update_last_used(conn, key_id: int) -> None\n   - deactivate_api_key(conn, key_id: int) -> None\n   - list_api_keys(conn) -> list[dict]\n\n2. Table schema:\n```sql\nCREATE TABLE IF NOT EXISTS api_keys (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    key_hash TEXT UNIQUE NOT NULL,\n    name TEXT NOT NULL,\n    created_at TEXT NOT NULL,\n    last_used_at TEXT,\n    is_active INTEGER NOT NULL DEFAULT 1\n)\n```\n\n3. Return dicts from queries (not tuples) for flexibility\n4. Use datetime.utcnow().isoformat() for timestamps\n\nIMPLEMENTATION:\n```python\n# ABOUTME: Database operations for api_keys table.\n# ABOUTME: Handles CRUD operations for API key storage and validation.\n\nfrom datetime import datetime\nfrom typing import Optional\nfrom hikuweb.db.connection import DatabaseConnection\n\ndef create_api_keys_table(conn: DatabaseConnection) -> None:\n    # ...\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_db_api_keys.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/db/api_keys.py tests/test_db_api_keys.py\n3. Run: uv run ruff format src/hikuweb/db/api_keys.py tests/test_db_api_keys.py\n\nCOMMIT: After tests pass with message like \"feat: add api_keys table with CRUD operations\"",
+  "deps": ["7"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/db/api_keys.py"},
+    {"type": "file_contains", "path": "src/hikuweb/db/api_keys.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/db/api_keys.py", "pattern": "create_api_keys_table"},
+    {"type": "file_contains", "path": "src/hikuweb/db/api_keys.py", "pattern": "insert_api_key"},
+    {"type": "tests_pass", "paths": ["tests/test_db_api_keys.py"]}
+  ]
+}
+
+{
+  "id": "9",
+  "desc": "PHASE 2 - PROMPT 6: Extraction Logs Table - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for extraction_logs table schema and CRUD operations.\n\nWHERE: tests/test_db_extraction_logs.py (new file)\n\nCONTEXT: The extraction_logs table records all extraction attempts for auditing and usage statistics.\n\nREQUIREMENTS - Write tests for:\n1. create_extraction_logs_table() creates the table\n2. insert_extraction_log() stores a new log entry and returns id\n3. get_logs_by_api_key() retrieves logs for a specific API key\n4. get_logs_by_api_key() supports pagination (limit, offset)\n5. count_logs_by_api_key() returns total count for an API key\n6. get_usage_stats() returns aggregated stats:\n   - total: int\n   - success_count: int\n   - error_count: int\n   - blocked_count: int (status=\"blocked\")\n   - avg_duration_ms: float\n\nTABLE SCHEMA to test against:\n- id: INTEGER PRIMARY KEY AUTOINCREMENT\n- api_key_id: INTEGER NOT NULL (foreign key)\n- url: TEXT NOT NULL\n- schema_hash: TEXT NOT NULL\n- status: TEXT NOT NULL (\"success\", \"error\", \"blocked\")\n- error_message: TEXT (nullable)\n- created_at: TEXT NOT NULL (ISO timestamp)\n- duration_ms: INTEGER NOT NULL\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for extraction_logs table CRUD operations.\n# ABOUTME: Verifies logging, pagination, and usage statistics.\n\nclass TestExtractionLogsTable:\n    def test_create_table(self, db_connection):\n        \"\"\"Should create extraction_logs table.\"\"\"\n    # ... etc\n```\n\nVERIFICATION: Run `uv run pytest tests/test_db_extraction_logs.py -v` - tests should FAIL",
+  "deps": ["8"],
+  "status": "done",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_db_extraction_logs.py"},
+    {"type": "file_contains", "path": "tests/test_db_extraction_logs.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_db_extraction_logs.py", "pattern": "create_extraction_logs_table"},
+    {"type": "file_contains", "path": "tests/test_db_extraction_logs.py", "pattern": "get_usage_stats"}
+  ]
+}
+
+{
+  "id": "10",
+  "desc": "PHASE 2 - PROMPT 6: Extraction Logs Table - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement extraction_logs table and CRUD operations to make tests pass.\n\nWHERE: src/hikuweb/db/extraction_logs.py (new file)\n\nCONTEXT: Implement the extraction_logs table for audit trail.\n\nREQUIREMENTS:\n1. Implement functions:\n   - create_extraction_logs_table(conn: DatabaseConnection) -> None\n   - insert_extraction_log(conn, api_key_id: int, url: str, schema_hash: str, status: str, error_message: Optional[str], duration_ms: int) -> int\n   - get_logs_by_api_key(conn, api_key_id: int, limit: int = 100, offset: int = 0) -> list[dict]\n   - count_logs_by_api_key(conn, api_key_id: int) -> int\n   - get_usage_stats(conn, api_key_id: int) -> dict\n\n2. Table schema with foreign key to api_keys\n\n3. get_usage_stats returns:\n   {\"total\": N, \"success_count\": N, \"error_count\": N, \"blocked_count\": N, \"avg_duration_ms\": N.N}\n\nIMPLEMENTATION:\n```python\n# ABOUTME: Database operations for extraction_logs table.\n# ABOUTME: Handles logging extractions and computing usage statistics.\n\nfrom datetime import datetime\nfrom typing import Optional\nfrom hikuweb.db.connection import DatabaseConnection\n\ndef create_extraction_logs_table(conn: DatabaseConnection) -> None:\n    conn.execute('''\n        CREATE TABLE IF NOT EXISTS extraction_logs (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            api_key_id INTEGER NOT NULL,\n            url TEXT NOT NULL,\n            schema_hash TEXT NOT NULL,\n            status TEXT NOT NULL,\n            error_message TEXT,\n            created_at TEXT NOT NULL,\n            duration_ms INTEGER NOT NULL\n        )\n    ''')\n    conn.commit()\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_db_extraction_logs.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/db/extraction_logs.py\n3. Run: uv run ruff format src/hikuweb/db/extraction_logs.py\n\nCOMMIT: After tests pass with message like \"feat: add extraction_logs table with usage statistics\"",
+  "deps": ["9"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/db/extraction_logs.py"},
+    {"type": "file_contains", "path": "src/hikuweb/db/extraction_logs.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/db/extraction_logs.py", "pattern": "create_extraction_logs_table"},
+    {"type": "file_contains", "path": "src/hikuweb/db/extraction_logs.py", "pattern": "get_usage_stats"},
+    {"type": "tests_pass", "paths": ["tests/test_db_extraction_logs.py"]}
+  ]
+}
+
+{
+  "id": "11",
+  "desc": "PHASE 3 - PROMPT 7: API Key Service - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for API key service (hashing, creation, validation).\n\nWHERE: tests/test_api_key_service.py (new file)\n\nCONTEXT: The API key service provides business logic layer on top of database operations. It handles key generation, hashing, and validation.\n\nREQUIREMENTS - Write tests for:\n1. generate_api_key() returns a random key string (32 chars, alphanumeric)\n2. generate_api_key() returns different keys on each call\n3. hash_api_key() returns consistent SHA-256 hash for same input\n4. hash_api_key() returns different hashes for different inputs\n5. create_api_key() generates key, stores hash in DB, returns raw key\n6. validate_api_key() returns key record dict if valid and active\n7. validate_api_key() returns None if key doesn't exist\n8. validate_api_key() returns None if key is inactive\n9. validate_api_key() updates last_used_at on successful validation\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for API key service business logic.\n# ABOUTME: Verifies key generation, hashing, and validation.\n\nimport pytest\n\nclass TestGenerateApiKey:\n    def test_returns_32_char_string(self):\n        \"\"\"Should return 32 character alphanumeric string.\"\"\"\n    \n    def test_returns_different_keys(self):\n        \"\"\"Should return different keys on each call.\"\"\"\n\nclass TestHashApiKey:\n    def test_consistent_hash(self):\n        \"\"\"Should return same hash for same input.\"\"\"\n\nclass TestCreateApiKey:\n    def test_stores_hash_returns_raw(self, db_connection):\n        \"\"\"Should store hash in DB and return raw key.\"\"\"\n\nclass TestValidateApiKey:\n    def test_valid_key_returns_record(self, db_connection):\n        \"\"\"Should return record for valid active key.\"\"\"\n```\n\nCONSTRAINTS:\n- Use db_connection fixture\n- Make sure api_keys table is created in fixture\n- Tests MUST fail initially\n\nVERIFICATION: Run `uv run pytest tests/test_api_key_service.py -v` - tests should FAIL",
+  "deps": ["10"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_api_key_service.py"},
+    {"type": "file_contains", "path": "tests/test_api_key_service.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_api_key_service.py", "pattern": "generate_api_key"},
+    {"type": "file_contains", "path": "tests/test_api_key_service.py", "pattern": "hash_api_key"},
+    {"type": "file_contains", "path": "tests/test_api_key_service.py", "pattern": "validate_api_key"}
+  ]
+}
+
+{
+  "id": "12",
+  "desc": "PHASE 3 - PROMPT 7: API Key Service - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement API key service to make tests pass.\n\nWHERE: src/hikuweb/services/api_key_service.py (new file)\n\nCONTEXT: Service layer for API key operations.\n\nREQUIREMENTS:\n1. Implement functions:\n   - generate_api_key() -> str\n     - Use secrets module for secure random generation\n     - 32 characters, alphanumeric (a-zA-Z0-9)\n   \n   - hash_api_key(raw_key: str) -> str\n     - SHA-256 hex digest\n     - Use hashlib.sha256\n   \n   - create_api_key(conn: DatabaseConnection, name: str) -> str\n     - Generate new key\n     - Hash it\n     - Store hash in database\n     - Return raw key (only time it's available!)\n   \n   - validate_api_key(conn: DatabaseConnection, raw_key: str) -> Optional[dict]\n     - Hash the raw key\n     - Look up by hash\n     - Return None if not found or inactive\n     - Update last_used_at if valid\n     - Return key record dict if valid\n\nIMPLEMENTATION:\n```python\n# ABOUTME: Service layer for API key operations.\n# ABOUTME: Handles secure key generation, hashing, and validation.\n\nimport hashlib\nimport secrets\nimport string\nfrom typing import Optional\n\nfrom hikuweb.db.api_keys import (\n    get_api_key_by_hash,\n    insert_api_key,\n    update_last_used,\n)\nfrom hikuweb.db.connection import DatabaseConnection\n\ndef generate_api_key() -> str:\n    alphabet = string.ascii_letters + string.digits\n    return ''.join(secrets.choice(alphabet) for _ in range(32))\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_api_key_service.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/services/api_key_service.py\n3. Run: uv run ruff format src/hikuweb/services/api_key_service.py\n\nCOMMIT: After tests pass with message like \"feat: add API key service with secure generation and validation\"",
+  "deps": ["11"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/services/api_key_service.py"},
+    {"type": "file_contains", "path": "src/hikuweb/services/api_key_service.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/services/api_key_service.py", "pattern": "generate_api_key"},
+    {"type": "file_contains", "path": "src/hikuweb/services/api_key_service.py", "pattern": "secrets"},
+    {"type": "file_contains", "path": "src/hikuweb/services/api_key_service.py", "pattern": "sha256"},
+    {"type": "tests_pass", "paths": ["tests/test_api_key_service.py"]}
+  ]
+}
+
+{
+  "id": "13",
+  "desc": "PHASE 3 - PROMPT 8: Schema Translation Primitives - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for JSON Schema to Pydantic translator (primitive types only).\n\nWHERE: tests/test_schema_translator.py (new file)\n\nCONTEXT: This service converts JSON Schema definitions to Pydantic models dynamically using pydantic.create_model(). Starting with primitives.\n\nREQUIREMENTS - Write tests for primitive types:\n1. Translates {\"type\": \"string\"} to str field\n2. Translates {\"type\": \"integer\"} to int field\n3. Translates {\"type\": \"number\"} to float field\n4. Translates {\"type\": \"boolean\"} to bool field\n5. Handles required fields (no default, field is required)\n6. Handles optional fields (default None)\n7. Handles default values from schema\n8. Generated model can validate data\n9. Generated model rejects invalid data types\n10. Empty schema creates empty model\n\nTEST EXAMPLES:\n```python\n# ABOUTME: Tests for JSON Schema to Pydantic model translation.\n# ABOUTME: Verifies primitive type mapping, required/optional handling.\n\nimport pytest\nfrom pydantic import ValidationError\n\nclass TestPrimitiveTypes:\n    def test_string_type(self):\n        schema = {\n            \"type\": \"object\",\n            \"properties\": {\"name\": {\"type\": \"string\"}}\n        }\n        Model = json_schema_to_pydantic(schema)\n        instance = Model(name=\"test\")\n        assert instance.name == \"test\"\n    \n    def test_required_field(self):\n        schema = {\n            \"type\": \"object\",\n            \"properties\": {\"name\": {\"type\": \"string\"}},\n            \"required\": [\"name\"]\n        }\n        Model = json_schema_to_pydantic(schema)\n        with pytest.raises(ValidationError):\n            Model()  # missing required field\n```\n\nVERIFICATION: Run `uv run pytest tests/test_schema_translator.py -v` - tests should FAIL",
+  "deps": ["12"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_schema_translator.py"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "json_schema_to_pydantic"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "string"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "required"}
+  ]
+}
+
+{
+  "id": "14",
+  "desc": "PHASE 3 - PROMPT 8: Schema Translation Primitives - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement JSON Schema to Pydantic translator for primitive types.\n\nWHERE: src/hikuweb/services/schema_translator.py (new file)\n\nCONTEXT: Use pydantic.create_model() to dynamically create models.\n\nREQUIREMENTS:\n1. Main function: json_schema_to_pydantic(schema: dict, model_name: str = \"DynamicModel\") -> type[BaseModel]\n\n2. Helper: _map_primitive_type(prop: dict) -> type\n   - \"string\" -> str\n   - \"integer\" -> int\n   - \"number\" -> float\n   - \"boolean\" -> bool\n   - unknown -> Any\n\n3. Handle \"required\" array from schema\n   - If field in required list: no default (field is required)\n   - If field not in required: default to None (Optional)\n\n4. Handle \"default\" in property definitions\n\n5. DO NOT handle arrays or nested objects yet\n\nIMPLEMENTATION:\n```python\n# ABOUTME: Translates JSON Schema definitions to Pydantic models.\n# ABOUTME: Supports primitive types with required/optional field handling.\n\nfrom typing import Any, Optional\nfrom pydantic import create_model\n\nTYPE_MAP = {\n    \"string\": str,\n    \"integer\": int,\n    \"number\": float,\n    \"boolean\": bool,\n}\n\ndef _map_primitive_type(prop: dict) -> type:\n    return TYPE_MAP.get(prop.get(\"type\"), Any)\n\ndef json_schema_to_pydantic(schema: dict, model_name: str = \"DynamicModel\") -> type:\n    properties = schema.get(\"properties\", {})\n    required = set(schema.get(\"required\", []))\n    \n    field_definitions = {}\n    for name, prop in properties.items():\n        field_type = _map_primitive_type(prop)\n        if name in required:\n            field_definitions[name] = (field_type, ...)\n        else:\n            default = prop.get(\"default\", None)\n            field_definitions[name] = (Optional[field_type], default)\n    \n    return create_model(model_name, **field_definitions)\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_schema_translator.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/services/schema_translator.py\n\nCOMMIT: After tests pass with message like \"feat: add schema translator for primitive types\"",
+  "deps": ["13"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/services/schema_translator.py"},
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "create_model"},
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "json_schema_to_pydantic"},
+    {"type": "tests_pass", "paths": ["tests/test_schema_translator.py"]}
+  ]
+}
+
+{
+  "id": "15",
+  "desc": "PHASE 3 - PROMPT 9: Schema Translation Arrays - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write NEW failing tests for array type support in schema translator.\n\nWHERE: tests/test_schema_translator.py (ADD to existing file)\n\nCONTEXT: Extend schema translator to handle array types. Previous primitive tests must continue to pass.\n\nREQUIREMENTS - Add NEW tests for arrays:\n1. Translates {\"type\": \"array\", \"items\": {\"type\": \"string\"}} to list[str]\n2. Translates {\"type\": \"array\", \"items\": {\"type\": \"integer\"}} to list[int]\n3. Translates {\"type\": \"array\", \"items\": {\"type\": \"number\"}} to list[float]\n4. Translates {\"type\": \"array\", \"items\": {\"type\": \"boolean\"}} to list[bool]\n5. Array without items specification defaults to list[Any]\n6. Required array field works correctly\n7. Optional array field defaults to None (not empty list)\n8. Generated model validates array data correctly\n9. Generated model rejects non-array data for array fields\n\nTEST EXAMPLES:\n```python\nclass TestArrayTypes:\n    def test_array_of_strings(self):\n        schema = {\n            \"type\": \"object\",\n            \"properties\": {\n                \"tags\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}\n            }\n        }\n        Model = json_schema_to_pydantic(schema)\n        instance = Model(tags=[\"a\", \"b\", \"c\"])\n        assert instance.tags == [\"a\", \"b\", \"c\"]\n    \n    def test_array_without_items(self):\n        schema = {\n            \"type\": \"object\",\n            \"properties\": {\"data\": {\"type\": \"array\"}}\n        }\n        Model = json_schema_to_pydantic(schema)\n        instance = Model(data=[1, \"two\", True])\n        assert len(instance.data) == 3\n```\n\nVERIFICATION: Run `uv run pytest tests/test_schema_translator.py -v` - NEW array tests should FAIL, primitive tests should still pass",
+  "deps": ["14"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "array"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "list"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "items"}
+  ]
+}
+
+{
+  "id": "16",
+  "desc": "PHASE 3 - PROMPT 9: Schema Translation Arrays - IMPLEMENT (TDD GREEN)\n\nWHAT: Extend schema translator to handle array types.\n\nWHERE: src/hikuweb/services/schema_translator.py (UPDATE existing file)\n\nCONTEXT: Make array tests pass while keeping primitive tests green.\n\nREQUIREMENTS:\n1. Update _map_primitive_type() or create new function to handle arrays\n2. When type is \"array\", look at \"items\" to determine inner type\n3. Use list[T] for type annotation where T is the items type\n4. If no \"items\" specified, use list[Any]\n\nIMPLEMENTATION UPDATE:\n```python\nfrom typing import Any, List, Optional\n\ndef _get_field_type(prop: dict) -> type:\n    prop_type = prop.get(\"type\")\n    \n    if prop_type == \"array\":\n        items = prop.get(\"items\", {})\n        inner_type = _map_primitive_type(items)\n        return List[inner_type]\n    \n    return _map_primitive_type(prop)\n```\n\nUpdate json_schema_to_pydantic to use _get_field_type instead of _map_primitive_type.\n\nDO NOT handle nested objects yet (arrays of objects) - next prompt.\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_schema_translator.py -v - ALL tests must PASS (primitives AND arrays)\n2. Run: uv run ruff check src/hikuweb/services/schema_translator.py\n\nCOMMIT: After tests pass with message like \"feat: extend schema translator with array support\"",
+  "deps": ["15"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "array"},
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "List"},
+    {"type": "tests_pass", "paths": ["tests/test_schema_translator.py"]}
+  ]
+}
+
+{
+  "id": "17",
+  "desc": "PHASE 3 - PROMPT 10: Schema Translation Nested Objects - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write NEW failing tests for nested object support in schema translator.\n\nWHERE: tests/test_schema_translator.py (ADD to existing file)\n\nCONTEXT: Extend schema translator to handle nested objects and arrays of objects.\n\nREQUIREMENTS - Add NEW tests for nested objects:\n1. Translates nested object property to nested Pydantic model\n2. Handles deeply nested objects (2+ levels)\n3. Handles arrays of objects: {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {...}}}\n4. Required nested object field works correctly\n5. Optional nested object field defaults to None\n6. Generated model validates nested data correctly\n7. Generated model rejects invalid nested data\n\nTEST EXAMPLE SCHEMA:\n```python\ndef test_nested_object():\n    schema = {\n        \"type\": \"object\",\n        \"properties\": {\n            \"name\": {\"type\": \"string\"},\n            \"address\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"street\": {\"type\": \"string\"},\n                    \"city\": {\"type\": \"string\"}\n                },\n                \"required\": [\"street\"]\n            },\n            \"tags\": {\n                \"type\": \"array\",\n                \"items\": {\n                    \"type\": \"object\",\n                    \"properties\": {\n                        \"name\": {\"type\": \"string\"},\n                        \"value\": {\"type\": \"integer\"}\n                    }\n                }\n            }\n        },\n        \"required\": [\"name\"]\n    }\n    Model = json_schema_to_pydantic(schema)\n    instance = Model(\n        name=\"Test\",\n        address={\"street\": \"123 Main\", \"city\": \"NYC\"},\n        tags=[{\"name\": \"tag1\", \"value\": 1}]\n    )\n    assert instance.name == \"Test\"\n    assert instance.address.street == \"123 Main\"\n```\n\nVERIFICATION: Run `uv run pytest tests/test_schema_translator.py -v` - NEW nested tests should FAIL, previous tests should pass",
+  "deps": ["16"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "nested"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "address"},
+    {"type": "file_contains", "path": "tests/test_schema_translator.py", "pattern": "object"}
+  ]
+}
+
+{
+  "id": "18",
+  "desc": "PHASE 3 - PROMPT 10: Schema Translation Nested Objects - IMPLEMENT (TDD GREEN)\n\nWHAT: Extend schema translator to handle nested objects.\n\nWHERE: src/hikuweb/services/schema_translator.py (UPDATE existing file)\n\nCONTEXT: Make nested object tests pass. Key pattern: recursive model creation.\n\nREQUIREMENTS:\n1. Handle \"object\" type by recursively calling json_schema_to_pydantic()\n2. Generate unique model names for nested objects (e.g., \"ParentModel_fieldname\")\n3. Handle arrays of objects by combining array and object logic\n4. All previous tests must continue to pass\n\nIMPLEMENTATION UPDATE:\n```python\ndef _get_field_type(prop: dict, model_name: str, field_name: str) -> type:\n    prop_type = prop.get(\"type\")\n    \n    if prop_type == \"object\":\n        nested_model_name = f\"{model_name}_{field_name}\"\n        return json_schema_to_pydantic(prop, nested_model_name)\n    \n    if prop_type == \"array\":\n        items = prop.get(\"items\", {})\n        if items.get(\"type\") == \"object\":\n            nested_model_name = f\"{model_name}_{field_name}_item\"\n            inner_type = json_schema_to_pydantic(items, nested_model_name)\n        else:\n            inner_type = _map_primitive_type(items)\n        return List[inner_type]\n    \n    return _map_primitive_type(prop)\n```\n\nUpdate json_schema_to_pydantic to pass model_name and field_name to _get_field_type.\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_schema_translator.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/services/schema_translator.py\n\nCOMMIT: After tests pass with message like \"feat: extend schema translator with nested object support\"",
+  "deps": ["17"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "object"},
+    {"type": "file_contains", "path": "src/hikuweb/services/schema_translator.py", "pattern": "recursive"},
+    {"type": "tests_pass", "paths": ["tests/test_schema_translator.py"]}
+  ]
+}
+
+{
+  "id": "19",
+  "desc": "PHASE 3 - PROMPT 11: robots.txt Service - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for robots.txt service (fetch, parse, cache, check).\n\nWHERE: tests/test_robots.py (new file)\n\nCONTEXT: This service checks if URLs are allowed to be scraped according to robots.txt. It fetches, parses, and caches robots.txt files.\n\nREQUIREMENTS - Write tests for:\n1. parse_robots_txt() correctly parses User-agent and Disallow rules\n2. parse_robots_txt() handles multiple User-agent sections\n3. parse_robots_txt() handles wildcard User-agent (*)\n4. is_path_allowed() returns True for allowed paths\n5. is_path_allowed() returns False for disallowed paths\n6. is_path_allowed() handles wildcard patterns in Disallow (e.g., /private/*)\n7. is_path_allowed() defaults to True if no matching rules\n8. RobotsChecker caches results with TTL\n9. RobotsChecker refreshes cache after TTL expires\n10. RobotsChecker handles missing robots.txt (assume all allowed)\n11. RobotsChecker handles network errors gracefully (assume all allowed)\n12. check_url() extracts domain and path correctly\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for robots.txt service.\n# ABOUTME: Verifies parsing, caching, and URL permission checking.\n\nimport pytest\nfrom unittest.mock import AsyncMock, patch\n\nclass TestParseRobotsTxt:\n    def test_parses_user_agent_and_disallow(self):\n        content = \"User-agent: *\\nDisallow: /private/\"\n        rules = parse_robots_txt(content)\n        assert \"/private/\" in rules.get(\"*\", [])\n\nclass TestIsPathAllowed:\n    def test_disallowed_path(self):\n        rules = {\"*\": [\"/private/\", \"/admin/\"]}\n        assert is_path_allowed(rules, \"/private/secret\") is False\n\nclass TestRobotsChecker:\n    @pytest.mark.asyncio\n    async def test_caches_results(self):\n        # ...\n```\n\nUse unittest.mock to mock httpx responses for async tests.\n\nVERIFICATION: Run `uv run pytest tests/test_robots.py -v` - tests should FAIL",
+  "deps": ["18"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_robots.py"},
+    {"type": "file_contains", "path": "tests/test_robots.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_robots.py", "pattern": "parse_robots_txt"},
+    {"type": "file_contains", "path": "tests/test_robots.py", "pattern": "is_path_allowed"},
+    {"type": "file_contains", "path": "tests/test_robots.py", "pattern": "RobotsChecker"}
+  ]
+}
+
+{
+  "id": "20",
+  "desc": "PHASE 3 - PROMPT 11: robots.txt Service - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement robots.txt service to make tests pass.\n\nWHERE: src/hikuweb/services/robots.py (new file)\n\nCONTEXT: Implement fetching, parsing, caching, and checking robots.txt.\n\nREQUIREMENTS:\n1. Class: RobotsChecker\n   - __init__(self, cache_ttl_seconds: int = 3600)\n   - _cache: dict[str, tuple[dict, float]] (domain -> (rules, timestamp))\n   - async fetch_robots_txt(domain: str) -> Optional[str]\n   - parse_robots_txt(content: str) -> dict (user_agent -> list of disallowed paths)\n   - is_path_allowed(rules: dict, path: str, user_agent: str = \"*\") -> bool\n   - async check_url(url: str) -> tuple[bool, Optional[str]] (allowed, reason)\n   - _is_cache_valid(domain: str) -> bool\n\n2. Use httpx for async HTTP requests\n3. Cache robots.txt content in memory with TTL\n4. Our user agent: \"hikuweb/0.1\"\n5. Handle errors gracefully - if can't fetch, assume allowed\n\nIMPLEMENTATION:\n```python\n# ABOUTME: Service for robots.txt compliance checking.\n# ABOUTME: Fetches, parses, caches, and checks URL permissions.\n\nimport time\nfrom typing import Optional\nfrom urllib.parse import urlparse\n\nimport httpx\n\nclass RobotsChecker:\n    USER_AGENT = \"hikuweb/0.1\"\n    \n    def __init__(self, cache_ttl_seconds: int = 3600):\n        self.cache_ttl_seconds = cache_ttl_seconds\n        self._cache: dict[str, tuple[dict, float]] = {}\n    \n    async def fetch_robots_txt(self, domain: str) -> Optional[str]:\n        try:\n            async with httpx.AsyncClient() as client:\n                response = await client.get(f\"https://{domain}/robots.txt\", timeout=10)\n                if response.status_code == 200:\n                    return response.text\n        except Exception:\n            pass\n        return None\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_robots.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/services/robots.py\n\nCOMMIT: After tests pass with message like \"feat: add robots.txt compliance service\"",
+  "deps": ["19"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/services/robots.py"},
+    {"type": "file_contains", "path": "src/hikuweb/services/robots.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/services/robots.py", "pattern": "RobotsChecker"},
+    {"type": "file_contains", "path": "src/hikuweb/services/robots.py", "pattern": "parse_robots_txt"},
+    {"type": "file_contains", "path": "src/hikuweb/services/robots.py", "pattern": "httpx"},
+    {"type": "tests_pass", "paths": ["tests/test_robots.py"]}
+  ]
+}
+
+{
+  "id": "21",
+  "desc": "PHASE 3 - PROMPT 12: Rate Limiter Service - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for per-domain rate limiter.\n\nWHERE: tests/test_rate_limiter.py (new file)\n\nCONTEXT: Rate limiter prevents too-rapid requests to the same domain. Uses simple token bucket algorithm.\n\nREQUIREMENTS - Write tests for:\n1. RateLimiter allows first request to a domain\n2. RateLimiter blocks rapid successive requests to same domain\n3. RateLimiter allows requests after waiting for rate limit period\n4. RateLimiter tracks different domains independently\n5. RateLimiter.acquire(url) returns True if allowed, False if blocked\n6. RateLimiter.wait_time(url) returns seconds until next allowed request\n7. RateLimiter handles domain extraction from URLs correctly\n8. RateLimiter cleans up old entries to prevent memory leaks\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for per-domain rate limiter service.\n# ABOUTME: Verifies rate limiting, domain tracking, and cleanup.\n\nimport time\nimport pytest\n\nclass TestDomainRateLimiter:\n    def test_allows_first_request(self):\n        limiter = DomainRateLimiter(requests_per_second=1.0)\n        assert limiter.acquire(\"https://example.com/page\") is True\n    \n    def test_blocks_rapid_requests(self):\n        limiter = DomainRateLimiter(requests_per_second=1.0)\n        limiter.acquire(\"https://example.com/page1\")\n        assert limiter.acquire(\"https://example.com/page2\") is False\n    \n    def test_different_domains_independent(self):\n        limiter = DomainRateLimiter(requests_per_second=1.0)\n        limiter.acquire(\"https://example.com/page\")\n        assert limiter.acquire(\"https://other.com/page\") is True\n    \n    def test_wait_time_returns_seconds(self):\n        limiter = DomainRateLimiter(requests_per_second=2.0)  # 0.5s between requests\n        limiter.acquire(\"https://example.com/page\")\n        wait = limiter.wait_time(\"https://example.com/another\")\n        assert 0 < wait <= 0.5\n```\n\nVERIFICATION: Run `uv run pytest tests/test_rate_limiter.py -v` - tests should FAIL",
+  "deps": ["20"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_rate_limiter.py"},
+    {"type": "file_contains", "path": "tests/test_rate_limiter.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_rate_limiter.py", "pattern": "DomainRateLimiter"},
+    {"type": "file_contains", "path": "tests/test_rate_limiter.py", "pattern": "acquire"},
+    {"type": "file_contains", "path": "tests/test_rate_limiter.py", "pattern": "wait_time"}
+  ]
+}
+
+{
+  "id": "22",
+  "desc": "PHASE 3 - PROMPT 12: Rate Limiter Service - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement per-domain rate limiter to make tests pass.\n\nWHERE: src/hikuweb/services/rate_limiter.py (new file)\n\nCONTEXT: Thread-safe rate limiter with domain tracking.\n\nREQUIREMENTS:\n1. Class: DomainRateLimiter\n   - __init__(self, requests_per_second: float = 1.0)\n   - _last_request: dict[str, float] (domain -> timestamp)\n   - _lock: threading.Lock (for thread safety)\n   - extract_domain(url: str) -> str\n   - acquire(url: str) -> bool (True if request allowed, updates timestamp)\n   - wait_time(url: str) -> float (seconds until next request allowed)\n   - cleanup(max_age_seconds: float = 3600) -> int (remove old entries)\n\n2. Simple token bucket: one request per (1/requests_per_second) seconds per domain\n3. Thread-safe with lock\n4. Use time.time() for timestamps\n\nIMPLEMENTATION:\n```python\n# ABOUTME: Per-domain rate limiter service.\n# ABOUTME: Thread-safe rate limiting using token bucket algorithm.\n\nimport threading\nimport time\nfrom urllib.parse import urlparse\n\nclass DomainRateLimiter:\n    def __init__(self, requests_per_second: float = 1.0):\n        self.min_interval = 1.0 / requests_per_second\n        self._last_request: dict[str, float] = {}\n        self._lock = threading.Lock()\n    \n    def extract_domain(self, url: str) -> str:\n        return urlparse(url).netloc\n    \n    def acquire(self, url: str) -> bool:\n        domain = self.extract_domain(url)\n        with self._lock:\n            now = time.time()\n            last = self._last_request.get(domain, 0)\n            if now - last >= self.min_interval:\n                self._last_request[domain] = now\n                return True\n            return False\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_rate_limiter.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/services/rate_limiter.py\n\nCOMMIT: After tests pass with message like \"feat: add per-domain rate limiter service\"",
+  "deps": ["21"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/services/rate_limiter.py"},
+    {"type": "file_contains", "path": "src/hikuweb/services/rate_limiter.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/services/rate_limiter.py", "pattern": "DomainRateLimiter"},
+    {"type": "file_contains", "path": "src/hikuweb/services/rate_limiter.py", "pattern": "threading.Lock"},
+    {"type": "tests_pass", "paths": ["tests/test_rate_limiter.py"]}
+  ]
+}
+
+{
+  "id": "23",
+  "desc": "PHASE 4 - PROMPT 13: FastAPI App + Health Endpoint - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for FastAPI app skeleton and health endpoint.\n\nWHERE: tests/test_api_health.py (new file)\n\nCONTEXT: This is the API layer. Starting with basic app structure and health check endpoint.\n\nREQUIREMENTS - Write tests for:\n1. GET /health returns 200 status\n2. GET /health returns {\"status\": \"healthy\", \"version\": \"0.1.0\"}\n3. Health endpoint is accessible without authentication\n4. OpenAPI docs are available at /docs\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for FastAPI health endpoint.\n# ABOUTME: Verifies health check returns correct status and version.\n\nimport pytest\nfrom fastapi.testclient import TestClient\n\nclass TestHealthEndpoint:\n    def test_health_returns_200(self, client):\n        response = client.get(\"/health\")\n        assert response.status_code == 200\n    \n    def test_health_returns_status_and_version(self, client):\n        response = client.get(\"/health\")\n        data = response.json()\n        assert data[\"status\"] == \"healthy\"\n        assert data[\"version\"] == \"0.1.0\"\n    \n    def test_health_no_auth_required(self, client):\n        # No X-API-Key header\n        response = client.get(\"/health\")\n        assert response.status_code == 200\n```\n\nUpdate tests/conftest.py to add TestClient fixture:\n```python\n@pytest.fixture\ndef client():\n    from hikuweb.main import app\n    from fastapi.testclient import TestClient\n    with TestClient(app) as c:\n        yield c\n```\n\nVERIFICATION: Run `uv run pytest tests/test_api_health.py -v` - tests should FAIL",
+  "deps": ["22"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_api_health.py"},
+    {"type": "file_contains", "path": "tests/test_api_health.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_api_health.py", "pattern": "/health"},
+    {"type": "file_contains", "path": "tests/test_api_health.py", "pattern": "healthy"},
+    {"type": "file_contains", "path": "tests/conftest.py", "pattern": "TestClient"}
+  ]
+}
+
+{
+  "id": "24",
+  "desc": "PHASE 4 - PROMPT 13: FastAPI App + Health Endpoint - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement FastAPI app skeleton with health endpoint.\n\nWHERE:\n- src/hikuweb/main.py (new file)\n- src/hikuweb/api/routes.py (new file)\n\nCONTEXT: Create FastAPI application with health check.\n\nREQUIREMENTS:\n1. Create src/hikuweb/api/routes.py:\n   - Create APIRouter instance\n   - Define GET /health endpoint\n   - HealthResponse model with status: str, version: str\n\n2. Create src/hikuweb/main.py:\n   - Create FastAPI app with title=\"hikuweb\", description, version=\"0.1.0\"\n   - Include router from routes.py\n   - Add lifespan context manager for startup/shutdown\n   - Initialize database tables on startup\n   - Add CORS middleware (allow all origins for MVP)\n\nIMPLEMENTATION:\n```python\n# src/hikuweb/api/routes.py\n# ABOUTME: API route definitions for hikuweb.\n# ABOUTME: Defines health, extract, and usage endpoints.\n\nfrom fastapi import APIRouter\nfrom pydantic import BaseModel\n\nrouter = APIRouter()\n\nclass HealthResponse(BaseModel):\n    status: str\n    version: str\n\n@router.get(\"/health\", response_model=HealthResponse)\ndef health_check():\n    return HealthResponse(status=\"healthy\", version=\"0.1.0\")\n```\n\n```python\n# src/hikuweb/main.py\n# ABOUTME: FastAPI application entry point for hikuweb.\n# ABOUTME: Configures app, middleware, and lifespan events.\n\nfrom contextlib import asynccontextmanager\nfrom fastapi import FastAPI\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom hikuweb.api.routes import router\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    # Startup: initialize database tables\n    yield\n    # Shutdown: cleanup\n\napp = FastAPI(\n    title=\"hikuweb\",\n    description=\"REST API service for AI-powered web scraping with hikugen\",\n    version=\"0.1.0\",\n    lifespan=lifespan,\n)\n\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_methods=[\"*\"], allow_headers=[\"*\"])\napp.include_router(router)\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_api_health.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/main.py src/hikuweb/api/\n3. Manual test: uv run uvicorn hikuweb.main:app --reload, check http://localhost:8000/health\n\nCOMMIT: After tests pass with message like \"feat: add FastAPI app skeleton with health endpoint\"",
+  "deps": ["23"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/main.py"},
+    {"type": "file_exists", "path": "src/hikuweb/api/routes.py"},
+    {"type": "file_contains", "path": "src/hikuweb/main.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/main.py", "pattern": "FastAPI"},
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "health"},
+    {"type": "tests_pass", "paths": ["tests/test_api_health.py"]}
+  ]
+}
+
+{
+  "id": "25",
+  "desc": "PHASE 4 - PROMPT 14: Authentication Dependency - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for API key authentication FastAPI dependency.\n\nWHERE: tests/test_api_auth.py (new file)\n\nCONTEXT: Authentication via X-API-Key header. Need to create a protected test endpoint.\n\nREQUIREMENTS - Write tests for:\n1. Request without X-API-Key header returns 401\n2. Request with invalid API key returns 401\n3. Request with inactive API key returns 401\n4. Request with valid API key succeeds (returns 200)\n5. Auth dependency injects api_key_record into route handlers\n6. Error response includes appropriate error message\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for API key authentication dependency.\n# ABOUTME: Verifies auth header validation and error responses.\n\nimport pytest\n\nclass TestAuthDependency:\n    def test_missing_api_key_returns_401(self, client):\n        response = client.get(\"/auth-test\")\n        assert response.status_code == 401\n        assert \"API key\" in response.json()[\"detail\"]\n    \n    def test_invalid_api_key_returns_401(self, client):\n        response = client.get(\"/auth-test\", headers={\"X-API-Key\": \"invalid\"})\n        assert response.status_code == 401\n    \n    def test_valid_api_key_succeeds(self, client, test_api_key):\n        response = client.get(\"/auth-test\", headers={\"X-API-Key\": test_api_key})\n        assert response.status_code == 200\n        assert response.json()[\"authenticated\"] is True\n```\n\nUpdate tests/conftest.py:\n- Add fixture to create test API key in database\n- Add fixture for test_api_key that returns raw key string\n\nVERIFICATION: Run `uv run pytest tests/test_api_auth.py -v` - tests should FAIL",
+  "deps": ["24"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_api_auth.py"},
+    {"type": "file_contains", "path": "tests/test_api_auth.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_api_auth.py", "pattern": "X-API-Key"},
+    {"type": "file_contains", "path": "tests/test_api_auth.py", "pattern": "401"},
+    {"type": "file_contains", "path": "tests/conftest.py", "pattern": "test_api_key"}
+  ]
+}
+
+{
+  "id": "26",
+  "desc": "PHASE 4 - PROMPT 14: Authentication Dependency - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement API key authentication FastAPI dependency.\n\nWHERE:\n- src/hikuweb/api/dependencies.py (new file)\n- src/hikuweb/api/routes.py (update - add /auth-test endpoint)\n\nCONTEXT: Create reusable auth dependency for protected endpoints.\n\nREQUIREMENTS:\n1. Create src/hikuweb/api/dependencies.py:\n   - get_db() dependency: yields database connection\n   - get_api_key(x_api_key: str = Header(...)) dependency:\n     - Validates key against database\n     - Returns api key record dict if valid\n     - Raises HTTPException(401) if invalid/missing/inactive\n   - Define APIKeyHeader security scheme for OpenAPI docs\n\n2. Add GET /auth-test endpoint to routes.py:\n   - Requires authentication\n   - Returns {\"authenticated\": true, \"key_name\": \"<name>\"}\n\nIMPLEMENTATION:\n```python\n# src/hikuweb/api/dependencies.py\n# ABOUTME: FastAPI dependencies for database and authentication.\n# ABOUTME: Provides get_db() and get_api_key() for dependency injection.\n\nfrom typing import Generator\nfrom fastapi import Header, HTTPException, Depends\nfrom fastapi.security import APIKeyHeader\n\nfrom hikuweb.config import get_settings\nfrom hikuweb.db.connection import DatabaseConnection, get_db_connection\nfrom hikuweb.services.api_key_service import validate_api_key\n\napi_key_header = APIKeyHeader(name=\"X-API-Key\", auto_error=False)\n\ndef get_db() -> Generator[DatabaseConnection, None, None]:\n    settings = get_settings()\n    with get_db_connection(settings.database_path) as conn:\n        yield conn\n\ndef get_api_key(\n    api_key: str = Depends(api_key_header),\n    db: DatabaseConnection = Depends(get_db),\n) -> dict:\n    if not api_key:\n        raise HTTPException(status_code=401, detail=\"API key required\")\n    record = validate_api_key(db, api_key)\n    if not record:\n        raise HTTPException(status_code=401, detail=\"Invalid or inactive API key\")\n    return record\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_api_auth.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/api/dependencies.py\n\nCOMMIT: After tests pass with message like \"feat: add API key authentication dependency\"",
+  "deps": ["25"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/api/dependencies.py"},
+    {"type": "file_contains", "path": "src/hikuweb/api/dependencies.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/api/dependencies.py", "pattern": "get_api_key"},
+    {"type": "file_contains", "path": "src/hikuweb/api/dependencies.py", "pattern": "HTTPException"},
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "auth-test"},
+    {"type": "tests_pass", "paths": ["tests/test_api_auth.py"]}
+  ]
+}
+
+{
+  "id": "27",
+  "desc": "PHASE 4 - PROMPT 15: Extract Endpoint - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for POST /extract endpoint.\n\nWHERE: tests/test_api_extract.py (new file)\n\nCONTEXT: This is the main endpoint - wires together auth, robots.txt, rate limiter, schema translator, and hikugen extraction.\n\nREQUIREMENTS - Write tests for:\n1. POST /extract without auth returns 401\n2. POST /extract with missing url returns 422 validation error\n3. POST /extract with missing schema returns 422 validation error\n4. POST /extract with invalid JSON schema returns 400\n5. POST /extract with robots.txt blocked URL returns 403\n6. POST /extract with rate limited domain returns 429\n7. POST /extract with valid request returns extracted data\n8. Response includes extraction metadata (cached: bool, duration_ms: int)\n9. Extraction is logged to database\n10. Use mocked hikugen for tests (don't hit real LLM)\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for POST /extract endpoint.\n# ABOUTME: Verifies extraction with auth, validation, and compliance checks.\n\nimport pytest\nfrom unittest.mock import patch, AsyncMock\n\nclass TestExtractEndpoint:\n    def test_extract_without_auth_returns_401(self, client):\n        response = client.post(\"/extract\", json={\"url\": \"https://example.com\", \"schema\": {}})\n        assert response.status_code == 401\n    \n    def test_extract_missing_url_returns_422(self, client, auth_headers):\n        response = client.post(\"/extract\", json={\"schema\": {}}, headers=auth_headers)\n        assert response.status_code == 422\n    \n    def test_extract_robots_blocked_returns_403(self, client, auth_headers):\n        # Mock robots checker to return blocked\n        with patch(...) as mock:\n            mock.return_value = (False, \"Blocked by robots.txt\")\n            response = client.post(\"/extract\", json={...}, headers=auth_headers)\n            assert response.status_code == 403\n    \n    @patch(\"hikuweb.services.extraction.HikuExtractor\")\n    def test_extract_success(self, mock_extractor, client, auth_headers):\n        mock_extractor.return_value.extract.return_value = {\"title\": \"Test\"}\n        response = client.post(\"/extract\", json={...}, headers=auth_headers)\n        assert response.status_code == 200\n        assert response.json()[\"data\"] == {\"title\": \"Test\"}\n```\n\nVERIFICATION: Run `uv run pytest tests/test_api_extract.py -v` - tests should FAIL",
+  "deps": ["26"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_api_extract.py"},
+    {"type": "file_contains", "path": "tests/test_api_extract.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_api_extract.py", "pattern": "/extract"},
+    {"type": "file_contains", "path": "tests/test_api_extract.py", "pattern": "401"},
+    {"type": "file_contains", "path": "tests/test_api_extract.py", "pattern": "422"},
+    {"type": "file_contains", "path": "tests/test_api_extract.py", "pattern": "mock"}
+  ]
+}
+
+{
+  "id": "28",
+  "desc": "PHASE 4 - PROMPT 15: Extract Endpoint - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement POST /extract endpoint with all services wired together.\n\nWHERE:\n- src/hikuweb/services/extraction.py (new file)\n- src/hikuweb/api/routes.py (update - add /extract endpoint)\n- src/hikuweb/api/dependencies.py (update - add singleton dependencies)\n\nCONTEXT: Main endpoint connecting all pieces.\n\nREQUIREMENTS:\n1. Create src/hikuweb/services/extraction.py:\n   - Class: ExtractionService\n     - __init__(self, openrouter_api_key: str, db_path: str)\n     - Creates HikuExtractor instance from hikugen\n     - extract(url: str, schema: dict) -> dict\n       - Converts JSON schema to Pydantic model\n       - Calls hikugen's extract() method\n       - Returns extracted data as dict\n\n2. Update src/hikuweb/api/routes.py:\n   - Add POST /extract endpoint\n   - Request model: ExtractRequest(url: str, schema: dict, cache_key: Optional[str])\n   - Response model: ExtractResponse(data: dict, cached: bool, duration_ms: int)\n   - Wire: auth -> robots check -> rate limit -> extract -> log\n\n3. Update src/hikuweb/api/dependencies.py:\n   - get_robots_checker() -> RobotsChecker (singleton)\n   - get_rate_limiter() -> DomainRateLimiter (singleton)\n   - get_extraction_service() -> ExtractionService (singleton)\n\nIMPLEMENTATION:\n```python\n# src/hikuweb/services/extraction.py\n# ABOUTME: Wrapper service for hikugen extraction library.\n# ABOUTME: Handles schema translation and hikugen API calls.\n\nfrom hikugen import HikuExtractor\nfrom hikuweb.services.schema_translator import json_schema_to_pydantic\n\nclass ExtractionService:\n    def __init__(self, openrouter_api_key: str, db_path: str):\n        self.extractor = HikuExtractor(api_key=openrouter_api_key)\n    \n    def extract(self, url: str, schema: dict) -> dict:\n        model = json_schema_to_pydantic(schema)\n        result = self.extractor.extract(url, model)\n        return result.model_dump()\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_api_extract.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/services/extraction.py src/hikuweb/api/\n\nCOMMIT: After tests pass with message like \"feat: add POST /extract endpoint with full service integration\"",
+  "deps": ["27"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "src/hikuweb/services/extraction.py"},
+    {"type": "file_contains", "path": "src/hikuweb/services/extraction.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "src/hikuweb/services/extraction.py", "pattern": "ExtractionService"},
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "/extract"},
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "ExtractRequest"},
+    {"type": "file_contains", "path": "src/hikuweb/api/dependencies.py", "pattern": "get_robots_checker"},
+    {"type": "tests_pass", "paths": ["tests/test_api_extract.py"]}
+  ]
+}
+
+{
+  "id": "29",
+  "desc": "PHASE 4 - PROMPT 16: Usage Endpoint - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write failing tests for GET /usage endpoint.\n\nWHERE: tests/test_api_usage.py (new file)\n\nCONTEXT: Usage endpoint returns statistics for the authenticated API key.\n\nREQUIREMENTS - Write tests for:\n1. GET /usage without auth returns 401\n2. GET /usage with auth returns usage stats\n3. Response includes total_extractions count\n4. Response includes success_count\n5. Response includes error_count\n6. Response includes blocked_count\n7. Response includes average_duration_ms (nullable)\n8. Response includes recent_extractions list (last 10)\n9. Stats are scoped to the authenticated API key only\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Tests for GET /usage endpoint.\n# ABOUTME: Verifies usage statistics and scoping to API key.\n\nimport pytest\n\nclass TestUsageEndpoint:\n    def test_usage_without_auth_returns_401(self, client):\n        response = client.get(\"/usage\")\n        assert response.status_code == 401\n    \n    def test_usage_with_auth_returns_stats(self, client, auth_headers):\n        response = client.get(\"/usage\", headers=auth_headers)\n        assert response.status_code == 200\n        data = response.json()\n        assert \"total_extractions\" in data\n        assert \"success_count\" in data\n        assert \"error_count\" in data\n        assert \"blocked_count\" in data\n        assert \"average_duration_ms\" in data\n        assert \"recent_extractions\" in data\n    \n    def test_usage_scoped_to_api_key(self, client, auth_headers, other_api_key_headers):\n        # Create extractions for different API keys\n        # Verify each only sees their own stats\n```\n\nVERIFICATION: Run `uv run pytest tests/test_api_usage.py -v` - tests should FAIL",
+  "deps": ["28"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_api_usage.py"},
+    {"type": "file_contains", "path": "tests/test_api_usage.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_api_usage.py", "pattern": "/usage"},
+    {"type": "file_contains", "path": "tests/test_api_usage.py", "pattern": "total_extractions"},
+    {"type": "file_contains", "path": "tests/test_api_usage.py", "pattern": "recent_extractions"}
+  ]
+}
+
+{
+  "id": "30",
+  "desc": "PHASE 4 - PROMPT 16: Usage Endpoint - IMPLEMENT (TDD GREEN)\n\nWHAT: Implement GET /usage endpoint for usage statistics.\n\nWHERE: src/hikuweb/api/routes.py (update)\n\nCONTEXT: Add usage endpoint that queries extraction_logs table.\n\nREQUIREMENTS:\n1. Add GET /usage endpoint to routes.py:\n   - Requires authentication\n   - Queries extraction_logs filtered by api_key_id\n   - Returns UsageResponse model\n\n2. Response models:\n   - UsageResponse:\n     - total_extractions: int\n     - success_count: int\n     - error_count: int\n     - blocked_count: int\n     - average_duration_ms: Optional[float]\n     - recent_extractions: list[ExtractionLogSummary]\n   - ExtractionLogSummary:\n     - url: str\n     - status: str\n     - created_at: str\n     - duration_ms: int\n\nIMPLEMENTATION:\n```python\n# In routes.py\nfrom hikuweb.db.extraction_logs import get_logs_by_api_key, get_usage_stats\n\nclass ExtractionLogSummary(BaseModel):\n    url: str\n    status: str\n    created_at: str\n    duration_ms: int\n\nclass UsageResponse(BaseModel):\n    total_extractions: int\n    success_count: int\n    error_count: int\n    blocked_count: int\n    average_duration_ms: Optional[float]\n    recent_extractions: list[ExtractionLogSummary]\n\n@router.get(\"/usage\", response_model=UsageResponse)\ndef get_usage(\n    api_key: dict = Depends(get_api_key),\n    db: DatabaseConnection = Depends(get_db),\n):\n    stats = get_usage_stats(db, api_key[\"id\"])\n    recent = get_logs_by_api_key(db, api_key[\"id\"], limit=10)\n    return UsageResponse(\n        total_extractions=stats[\"total\"],\n        success_count=stats[\"success_count\"],\n        error_count=stats[\"error_count\"],\n        blocked_count=stats.get(\"blocked_count\", 0),\n        average_duration_ms=stats[\"avg_duration_ms\"],\n        recent_extractions=[ExtractionLogSummary(**log) for log in recent],\n    )\n```\n\nVERIFICATION:\n1. Run: uv run pytest tests/test_api_usage.py -v - ALL tests must PASS\n2. Run: uv run ruff check src/hikuweb/api/routes.py\n\nCOMMIT: After tests pass with message like \"feat: add GET /usage endpoint for usage statistics\"",
+  "deps": ["29"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "/usage"},
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "UsageResponse"},
+    {"type": "file_contains", "path": "src/hikuweb/api/routes.py", "pattern": "ExtractionLogSummary"},
+    {"type": "tests_pass", "paths": ["tests/test_api_usage.py"]}
+  ]
+}
+
+{
+  "id": "31",
+  "desc": "PHASE 5 - PROMPT 17: Integration Tests - WRITE TESTS FIRST (TDD RED)\n\nWHAT: Write integration/E2E tests for complete extraction flow.\n\nWHERE: tests/test_integration.py (new file)\n\nCONTEXT: Final testing phase - verify all components work together end-to-end.\n\nREQUIREMENTS - Write integration tests for:\n1. Full extraction flow: auth -> robots check -> rate limit -> extract -> log\n2. Test with HTML fixture or mock (don't depend on external sites)\n3. Verify extracted data matches expected schema\n4. Verify extraction is logged correctly\n5. Verify usage stats update after extraction\n6. Test error cases end-to-end:\n   - Blocked URL (robots.txt)\n   - Rate limited domain\n   - Invalid schema\n7. Mark tests with @pytest.mark.integration\n8. Skip tests if OPENROUTER_API_KEY not set (for CI)\n\nTEST STRUCTURE:\n```python\n# ABOUTME: Integration tests for hikuweb end-to-end flows.\n# ABOUTME: Verifies complete extraction pipeline from auth to logging.\n\nimport pytest\nimport os\n\npytestmark = pytest.mark.integration\n\n@pytest.fixture\ndef skip_if_no_api_key():\n    if not os.environ.get(\"OPENROUTER_API_KEY\"):\n        pytest.skip(\"OPENROUTER_API_KEY not set\")\n\nclass TestFullExtractionFlow:\n    def test_complete_extraction_logged(self, client, auth_headers, skip_if_no_api_key):\n        # 1. Make extraction request\n        # 2. Verify response\n        # 3. Check usage endpoint shows the extraction\n    \n    def test_robots_blocked_logged_as_blocked(self, client, auth_headers):\n        # Mock robots checker to block\n        # Verify extraction logged with status=\"blocked\"\n    \n    def test_rate_limit_returns_429(self, client, auth_headers):\n        # Make rapid requests to same domain\n        # Verify 429 response\n```\n\nVERIFICATION: Run `uv run pytest tests/test_integration.py -v` - tests should FAIL initially",
+  "deps": ["30"],
+  "status": "pending",
+  "evals": [
+    {"type": "file_exists", "path": "tests/test_integration.py"},
+    {"type": "file_contains", "path": "tests/test_integration.py", "pattern": "ABOUTME"},
+    {"type": "file_contains", "path": "tests/test_integration.py", "pattern": "integration"},
+    {"type": "file_contains", "path": "tests/test_integration.py", "pattern": "OPENROUTER_API_KEY"}
+  ]
+}
+
+{
+  "id": "32",
+  "desc": "PHASE 5 - PROMPT 17: Integration Fixes & Polish (TDD GREEN)\n\nWHAT: Fix any integration issues and polish the codebase.\n\nWHERE: Various files as needed\n\nCONTEXT: Final implementation phase - make all tests pass and ensure production readiness.\n\nREQUIREMENTS:\n1. Fix any integration issues discovered:\n   - Ensure hikugen is properly imported and works\n   - Ensure database connections handled correctly (no leaks)\n   - Ensure async/sync boundaries handled correctly\n   - Ensure error messages are user-friendly\n\n2. Polish:\n   - Add proper error handling for all edge cases\n   - Ensure OpenAPI docs complete and accurate\n   - Add response examples to route docstrings\n   - Verify all ABOUTME comments in place\n\n3. Update main.py lifespan to initialize all database tables:\n   - create_api_keys_table()\n   - create_extraction_logs_table()\n\nVERIFICATION:\n1. Run ALL tests: uv run pytest -v\n2. Run linter: uv run ruff check src/ tests/\n3. Run formatter: uv run ruff format src/ tests/\n4. All tests must pass\n5. No linting errors\n\nCOMMIT: After tests pass with message like \"feat: complete integration and polish codebase\"",
+  "deps": ["31"],
+  "status": "pending",
+  "evals": [
+    {"type": "tests_pass", "paths": ["tests/"]},
+    {"type": "cmd", "run": "cd /home/kyototech/projects/hikuweb && uv run ruff check src/ tests/ 2>&1 | tail -5"},
+    {"type": "build_succeeds"}
+  ]
+}
+
+{
+  "id": "33",
+  "desc": "FINAL: Run Complete Test Suite & Verification\n\nWHAT: Final verification that everything works together.\n\nWHERE: Entire codebase\n\nCONTEXT: Final checkpoint before completion.\n\nREQUIREMENTS:\n1. Run complete test suite: uv run pytest -v\n   - All tests must pass\n\n2. Run linter: uv run ruff check src/ tests/\n   - No errors\n\n3. Run formatter: uv run ruff format src/ tests/ --check\n   - All files formatted\n\n4. Verify file structure matches plan:\n   - src/hikuweb/__init__.py\n   - src/hikuweb/main.py\n   - src/hikuweb/config.py\n   - src/hikuweb/api/__init__.py\n   - src/hikuweb/api/routes.py\n   - src/hikuweb/api/dependencies.py\n   - src/hikuweb/services/__init__.py\n   - src/hikuweb/services/api_key_service.py\n   - src/hikuweb/services/extraction.py\n   - src/hikuweb/services/schema_translator.py\n   - src/hikuweb/services/robots.py\n   - src/hikuweb/services/rate_limiter.py\n   - src/hikuweb/db/__init__.py\n   - src/hikuweb/db/connection.py\n   - src/hikuweb/db/api_keys.py\n   - src/hikuweb/db/extraction_logs.py\n\n5. Verify all files have ABOUTME comments\n\n6. Final checklist:\n   - [ ] All tests pass\n   - [ ] No linting errors\n   - [ ] Code is formatted\n   - [ ] OpenAPI docs work (http://localhost:8000/docs)\n   - [ ] All endpoints functional: GET /health, POST /extract, GET /usage\n   - [ ] All files have ABOUTME comments\n\nCOMMIT: Final commit with message like \"chore: complete hikuweb MVP implementation\"",
+  "deps": ["32"],
+  "status": "pending",
+  "evals": [
+    {"type": "tests_pass", "paths": ["tests/"]},
+    {"type": "cmd", "run": "cd /home/kyototech/projects/hikuweb && uv run ruff check src/ tests/"},
+    {"type": "file_exists", "path": "src/hikuweb/main.py"},
+    {"type": "file_exists", "path": "src/hikuweb/config.py"},
+    {"type": "file_exists", "path": "src/hikuweb/api/routes.py"},
+    {"type": "file_exists", "path": "src/hikuweb/api/dependencies.py"},
+    {"type": "file_exists", "path": "src/hikuweb/services/api_key_service.py"},
+    {"type": "file_exists", "path": "src/hikuweb/services/extraction.py"},
+    {"type": "file_exists", "path": "src/hikuweb/services/schema_translator.py"},
+    {"type": "file_exists", "path": "src/hikuweb/services/robots.py"},
+    {"type": "file_exists", "path": "src/hikuweb/services/rate_limiter.py"},
+    {"type": "file_exists", "path": "src/hikuweb/db/connection.py"},
+    {"type": "file_exists", "path": "src/hikuweb/db/api_keys.py"},
+    {"type": "file_exists", "path": "src/hikuweb/db/extraction_logs.py"},
+    {"type": "grep_present", "pattern": "ABOUTME", "paths": ["src/hikuweb/*.py", "src/hikuweb/**/*.py"]}
+  ]
+}

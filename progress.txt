@@ -1,0 +1,516 @@
+---
+## [1] PHASE 1 - PROMPT 1: Project Initialization
+Completed: 2026-01-12T07:42:40-08:00
+
+### What I did
+Initialized the hikuweb project structure with uv package manager. Created the complete folder structure with pyproject.toml, pytest configuration, and all required source directories following the ABOUTME comment convention.
+
+### Output/Results
+Created files:
+- pyproject.toml: Complete project configuration with all dependencies (fastapi, uvicorn, pydantic, pydantic-settings, httpx, hikugen) and dev dependencies (pytest, pytest-asyncio, ruff)
+- pytest.ini: Test configuration with testpaths, asyncio_mode, and pythonpath
+- src/hikuweb/__init__.py: Main package with __version__ = "0.1.0" and ABOUTME comments
+- src/hikuweb/api/__init__.py: Empty API package with ABOUTME comments
+- src/hikuweb/services/__init__.py: Empty services package with ABOUTME comments
+- src/hikuweb/db/__init__.py: Empty database package with ABOUTME comments
+- tests/__init__.py: Empty test package
+- tests/conftest.py: Empty pytest fixtures file
+
+Installed 31 packages via uv sync including hikugen 0.3.1 and all dependencies.
+
+### Evals Run
+1. ✓ file_exists: pyproject.toml
+2. ✓ file_exists: src/hikuweb/__init__.py
+3. ✓ file_exists: src/hikuweb/api/__init__.py
+4. ✓ file_exists: src/hikuweb/services/__init__.py
+5. ✓ file_exists: src/hikuweb/db/__init__.py
+6. ✓ file_exists: tests/__init__.py
+7. ✓ file_exists: tests/conftest.py
+8. ✓ file_exists: pytest.ini
+9. ✓ file_contains: pyproject.toml contains "hikuweb"
+10. ✓ file_contains: pyproject.toml contains "fastapi"
+11. ✓ file_contains: src/hikuweb/__init__.py contains "ABOUTME"
+12. ✓ cmd: uv sync && pytest --collect-only returns "no tests collected"
+
+All 12 evals passed successfully.
+
+### Learnings
+- The ABOUTME comment convention provides clear documentation at the top of every source file
+- Using uv as package manager is straightforward and fast (installed 31 packages in 9ms after download)
+- Project structure follows standard Python src-layout for better packaging support
+- pytest.ini configuration with pythonpath = src allows tests to import from src directly
+
+### New tasks created
+None
+
+### Git commit
+Created commit beb207c: "feat: initialize project structure with pyproject.toml and folder layout"
+- Added 10 files total (pyproject.toml, pytest.ini, src tree, tests tree)
+
+---
+## [2] PHASE 1 - PROMPT 2: Tooling Setup
+Completed: 2026-01-12T08:15:00-08:00
+
+### What I did
+Set up development tooling for hikuweb including ruff linter/formatter configuration, pre-commit hooks, and comprehensive AGENTS.md documentation. Added pre-commit as a dev dependency and configured it to run ruff checks and formatting automatically.
+
+### Output/Results
+Created files:
+- pyproject.toml: Added [tool.ruff] configuration section with line-length=100, target Python 3.11, and selected linting rules (E, F, I, N, W, UP, B, C4, SIM)
+- .pre-commit-config.yaml: Configured pre-commit with ruff-pre-commit hooks (ruff check --fix and ruff-format)
+- AGENTS.md: Comprehensive documentation covering quick reference commands, project structure, code style guidelines (ABOUTME comments, import ordering, type annotations), testing guidelines (TDD workflow, fixtures, mocking), environment variables, and architecture notes
+- uv.lock: Updated with pre-commit and dependencies (10 new packages)
+
+Installed pre-commit hooks at .git/hooks/pre-commit.
+Ran pre-commit on all files - all checks passed.
+
+### Evals Run
+1. ✓ file_exists: .pre-commit-config.yaml
+2. ✓ file_exists: AGENTS.md
+3. ✓ file_contains: pyproject.toml contains "tool.ruff"
+4. ✓ file_contains: .pre-commit-config.yaml contains "ruff"
+5. ✓ cmd: ruff check src/ tests/ - "All checks passed!"
+
+All 5 evals passed successfully.
+
+### Learnings
+- Pre-commit integration with uv requires using `uv run pre-commit` to ensure the correct virtual environment
+- Ruff provides both linting and formatting in a single fast tool, replacing multiple tools (flake8, black, isort)
+- The .pre-commit-config.yaml rev must match a valid ruff-pre-commit release tag (used v0.8.4)
+- ABOUTME comments convention makes it easy to grep file purposes: `grep "ABOUTME:" src/**/*.py`
+- Pre-commit hooks automatically run on git commit, ensuring code quality gates before commits enter history
+
+### New tasks created
+None
+
+### Git commit
+Created commit a5418f8: "feat: add ruff tooling and pre-commit hooks"
+- Added 4 files (pyproject.toml updates, .pre-commit-config.yaml, AGENTS.md, uv.lock)
+- 950 insertions total
+---
+## [3] Configuration Management - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T07:50:21-08:00
+
+### What I did
+Created comprehensive test suite for configuration management using pydantic-settings. Following TDD RED phase, wrote failing tests that define the expected behavior of the Settings class and get_settings() singleton function before implementing the actual config module.
+
+### Output/Results
+Created tests/test_config.py with:
+- TestSettings class with 6 test methods covering:
+  1. Default values when no environment variables are set
+  2. Loading DATABASE_PATH from environment (default: "hikuweb.db")
+  3. Loading OPENROUTER_API_KEY from environment (optional, no default)
+  4. Loading RATE_LIMIT_REQUESTS_PER_SECOND from environment (default: 1.0)
+  5. Loading ROBOTS_CACHE_TTL_SECONDS from environment (default: 3600)
+  6. Validation that OPENROUTER_API_KEY can be None
+- TestGetSettings class with 2 test methods covering:
+  1. Returns Settings instance
+  2. Returns same cached instance on multiple calls (singleton pattern)
+
+All tests use patch.dict(os.environ) to safely manipulate environment variables in isolation.
+Tests properly fail with ModuleNotFoundError as expected in RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_config.py
+2. ✓ file_contains: tests/test_config.py contains "ABOUTME"
+3. ✓ file_contains: tests/test_config.py contains "def test_"
+4. ✓ file_contains: tests/test_config.py contains "DATABASE_PATH"
+5. ✓ file_contains: tests/test_config.py contains "OPENROUTER_API_KEY"
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase successfully creates failing tests that document expected behavior
+- Using patch.dict(os.environ, {}, clear=True) ensures clean environment for each test
+- Type coercion handled automatically by pydantic-settings (string "2.5" to float, "7200" to int)
+- ModuleNotFoundError is the expected failure mode when module doesn't exist yet
+- Test structure follows Arrange-Act-Assert pattern for clarity
+
+### New tasks created
+None
+
+---
+## [4] Configuration Management - IMPLEMENT (TDD GREEN)
+Completed: 2026-01-12T07:52:00-08:00
+
+### What I did
+Implemented the configuration module src/hikuweb/config.py using pydantic-settings to make all tests from task 3 pass. Created a Settings class with BaseSettings that loads environment variables with sensible defaults, and a get_settings() singleton function using lru_cache.
+
+### Output/Results
+Created src/hikuweb/config.py (24 lines):
+- Settings class with 4 fields:
+  - database_path: str = "hikuweb.db"
+  - openrouter_api_key: str | None = None (modern union syntax)
+  - rate_limit_requests_per_second: float = 1.0
+  - robots_cache_ttl_seconds: int = 3600
+- model_config with env_file and extra="ignore" support
+- get_settings() function decorated with @lru_cache for singleton pattern
+- ABOUTME comments explaining purpose
+
+All 8 tests in tests/test_config.py pass:
+- 6 Settings tests covering defaults, environment variable loading, and optional fields
+- 2 get_settings tests verifying singleton pattern
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/config.py exists
+2. ✓ file_contains: ABOUTME comment present
+3. ✓ file_contains: BaseSettings import present
+4. ✓ file_contains: database_path field present
+5. ✓ tests_pass: All 8 tests in tests/test_config.py pass
+
+All 5 evals passed successfully.
+
+### Learnings
+- Ruff automatically modernized Optional[str] to str | None (Python 3.10+ union syntax)
+- lru_cache decorator provides easy singleton pattern without additional code
+- pydantic-settings automatically handles type coercion (string "2.5" → float 2.5)
+- Pre-commit hooks ran automatically during commit and both ruff checks passed
+- TDD GREEN phase delivered exactly what tests specified - no more, no less
+
+### New tasks created
+None
+
+### Git commit
+Created commit 20680ca: "feat: add configuration management with pydantic-settings"
+- Added 2 files: src/hikuweb/config.py (implementation), tests/test_config.py (tests from task 3)
+- 122 insertions total
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+
+---
+## [5] Database Connection - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T08:30:00-08:00
+
+### What I did
+Created comprehensive test suite for SQLite database connection manager following TDD RED phase. Wrote 11 failing tests covering all aspects of database connection lifecycle, context management, query execution, and transaction handling.
+
+### Output/Results
+Created tests/test_db_connection.py with 197 lines:
+- TestDatabaseConnection class with 10 test methods:
+  1. test_connection_created_with_path - Verifies DatabaseConnection instantiation with file path
+  2. test_context_manager_closes_connection - Ensures connection closes after context exits
+  3. test_execute_runs_query - Tests SQL query execution with parameters
+  4. test_executemany_runs_batch_operations - Verifies batch insert operations
+  5. test_fetchone_returns_single_row - Tests fetching single row result
+  6. test_fetchall_returns_all_rows - Tests fetching multiple rows
+  7. test_commit_persists_changes - Ensures commit saves changes across connections
+  8. test_rollback_reverts_changes - Verifies rollback cancels uncommitted changes
+  9. test_in_memory_database_works - Tests :memory: database support
+  10. test_multiple_queries_in_session - Tests complex multi-table operations with joins
+
+- TestGetDbConnection class with 1 test method:
+  1. test_returns_working_connection - Verifies get_db_connection() helper function
+
+All tests properly fail with ModuleNotFoundError as expected in TDD RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_db_connection.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: "def test_" pattern found (11 test methods)
+4. ✓ file_contains: "context" keyword found (context manager tests)
+5. ✓ file_contains: "memory" keyword found (:memory: database tests)
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase successfully creates comprehensive failing tests that document API contract
+- Used both :memory: databases for speed and temporary files to test persistence
+- Tests cover happy path, edge cases, and transaction semantics (commit/rollback)
+- Context manager pattern ensures proper resource cleanup
+- Expected failure mode: ModuleNotFoundError when module doesn't exist yet
+- Test structure follows clear Arrange-Act-Assert pattern with descriptive docstrings
+
+### New tasks created
+None
+
+---
+## [6] Database Connection - IMPLEMENT (TDD GREEN)
+Completed: 2026-01-12T09:30:00-08:00
+
+### What I did
+Implemented the SQLite database connection manager following TDD GREEN phase to make all 11 tests from task 5 pass. Created a robust DatabaseConnection class with full context manager support, query execution methods, and transaction handling (commit/rollback). Also updated tests/conftest.py with a reusable db_connection fixture for future test modules.
+
+### Output/Results
+Created src/hikuweb/db/connection.py (133 lines):
+- DatabaseConnection class with complete implementation:
+  - __init__(db_path: str): Initializes connection with path or ":memory:"
+  - __enter__/__exit__: Context manager support with automatic cleanup
+  - execute(query, params): Execute single SQL queries with parameters
+  - executemany(query, params_list): Batch operations for multiple inserts
+  - fetchone(): Retrieve single row from last query
+  - fetchall(): Retrieve all rows from last query
+  - commit(): Persist changes to database
+  - rollback(): Revert uncommitted changes
+- get_db_connection(db_path): Helper function to create connection instances
+- Proper error handling with RuntimeError if used outside context manager
+- Full type annotations using modern Python 3.10+ union syntax (X | None)
+
+Updated tests/conftest.py:
+- Added @pytest.fixture db_connection for reusable in-memory database
+- This fixture will be used by api_keys and extraction_logs test modules
+
+All 11 tests pass:
+1. test_connection_created_with_path
+2. test_context_manager_closes_connection
+3. test_execute_runs_query
+4. test_executemany_runs_batch_operations
+5. test_fetchone_returns_single_row
+6. test_fetchall_returns_all_rows
+7. test_commit_persists_changes
+8. test_rollback_reverts_changes
+9. test_in_memory_database_works
+10. test_multiple_queries_in_session
+11. test_returns_working_connection
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/db/connection.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: DatabaseConnection class defined
+4. ✓ file_contains: __enter__ method implemented (context manager)
+5. ✓ file_contains: fixture decorator in tests/conftest.py
+6. ✓ tests_pass: All 11 tests in tests/test_db_connection.py pass
+
+All 6 evals passed successfully.
+
+### Learnings
+- Context manager pattern ensures proper resource cleanup even if exceptions occur
+- SQLite cursor.execute() returns the cursor itself, enabling method chaining
+- Using :memory: for testing is fast but temporary files test persistence correctly
+- Ruff automatically modernized Optional[X] to X | None (Python 3.10+ union syntax)
+- Pre-commit hooks ran automatically during commit - both ruff check and ruff-format passed
+- Providing RuntimeError when used outside context manager helps catch usage errors early
+- The db_connection fixture pattern allows test isolation with clean databases per test
+
+### New tasks created
+None
+
+### Git commit
+Created commit 2e2d0f4: "feat: add SQLite connection manager with context management"
+- Added 2 files: src/hikuweb/db/connection.py (133 lines), updated tests/conftest.py (17 lines)
+- Tests from task 5 (test_db_connection.py) committed together
+- 336 insertions total
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+
+---
+## [7] API Keys Table - WRITE TESTS FIRST (TDD RED)
+Completed: $(date -Iseconds)
+
+### What I did
+Created comprehensive test suite for the api_keys table following TDD RED phase. Wrote 16 failing test methods covering all CRUD operations, schema validation, unique constraints, and edge cases. The tests define the complete API contract for api_keys database operations before any implementation exists.
+
+### Output/Results
+Created tests/test_db_api_keys.py with 314 lines:
+
+**Test Classes and Coverage:**
+1. TestCreateApiKeysTable (1 test):
+   - test_creates_table: Verifies table creation and schema validation
+
+2. TestInsertApiKey (3 tests):
+   - test_inserts_and_returns_id: Verifies auto-incrementing ID generation
+   - test_stores_all_fields: Validates all fields stored correctly
+   - test_rejects_duplicate_hash: Ensures UNIQUE constraint on key_hash
+
+3. TestGetApiKeyByHash (2 tests):
+   - test_returns_key_by_hash: Retrieves record by hash lookup
+   - test_returns_none_for_nonexistent_hash: Handles missing keys gracefully
+
+4. TestGetApiKeyById (2 tests):
+   - test_returns_key_by_id: Retrieves record by ID lookup
+   - test_returns_none_for_nonexistent_id: Handles missing keys gracefully
+
+5. TestUpdateLastUsed (2 tests):
+   - test_updates_timestamp: Updates last_used_at with ISO timestamp
+   - test_updates_multiple_times: Handles repeated updates correctly
+
+6. TestDeactivateApiKey (1 test):
+   - test_sets_is_active_to_false: Deactivates key by setting is_active to 0
+
+7. TestListApiKeys (3 tests):
+   - test_returns_all_keys: Lists all keys in database
+   - test_returns_empty_list_when_no_keys: Handles empty table
+   - test_includes_active_and_inactive_keys: Returns both active and inactive
+
+**Table Schema Definition (from tests):**
+- id: INTEGER PRIMARY KEY AUTOINCREMENT
+- key_hash: TEXT UNIQUE NOT NULL
+- name: TEXT NOT NULL (friendly name for key)
+- created_at: TEXT NOT NULL (ISO 8601 timestamp)
+- last_used_at: TEXT (nullable, updated on each use)
+- is_active: INTEGER NOT NULL DEFAULT 1 (1=active, 0=inactive)
+
+Tests properly fail with ModuleNotFoundError as expected in TDD RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_db_api_keys.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: create_api_keys_table function referenced
+4. ✓ file_contains: insert_api_key function referenced
+5. ✓ file_contains: get_api_key_by_hash function referenced
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase creates a complete specification via failing tests before implementation
+- Testing UNIQUE constraints requires pytest.raises(Exception) to catch SQLite errors
+- Using dict return types from database functions (vs tuples) makes tests more readable
+- The db_connection fixture from conftest.py enables clean test isolation
+- Covering edge cases (empty tables, missing IDs, duplicate keys) ensures robust API
+- Tests document the expected schema including field types and constraints
+- Testing both active and inactive keys ensures list operations work correctly
+
+### New tasks created
+None
+
+---
+## [8] API Keys Table - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Implemented the api_keys database table and all CRUD operations following TDD GREEN phase to make all 14 tests from task 7 pass. Created a comprehensive module with table creation, insert, query, update, and deactivation functions. Also fixed a ruff linting issue by using sqlite3.IntegrityError instead of bare Exception in tests.
+
+### Output/Results
+Created src/hikuweb/db/api_keys.py with 159 lines:
+- create_api_keys_table(): Creates table with proper schema (id, key_hash UNIQUE, name, created_at, last_used_at, is_active)
+- insert_api_key(): Inserts new key with hash and returns auto-generated ID
+- get_api_key_by_hash(): Retrieves key record by SHA-256 hash lookup
+- get_api_key_by_id(): Retrieves key record by primary key
+- update_last_used(): Updates last_used_at timestamp with current UTC time
+- deactivate_api_key(): Sets is_active to 0 (soft delete)
+- list_api_keys(): Returns all keys (both active and inactive) for admin use
+- _row_to_dict(): Helper to convert tuples to dicts with named fields
+
+**Table Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key_hash TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1
+)
+```
+
+**Key Implementation Details:**
+- Uses datetime.UTC (Python 3.11+ modern alias) instead of timezone.utc
+- Returns dicts from all query functions for better readability
+- UNIQUE constraint on key_hash enforced at database level
+- ISO 8601 timestamps for created_at and last_used_at
+- Proper error handling with sqlite3.IntegrityError for duplicate keys
+- All functions accept DatabaseConnection context manager
+- Comprehensive docstrings with Google-style format
+
+All 14 tests pass:
+1. test_creates_table
+2. test_inserts_and_returns_id
+3. test_stores_all_fields
+4. test_rejects_duplicate_hash
+5. test_returns_key_by_hash
+6. test_returns_none_for_nonexistent_hash
+7. test_returns_key_by_id
+8. test_returns_none_for_nonexistent_id
+9. test_updates_timestamp
+10. test_updates_multiple_times
+11. test_sets_is_active_to_false
+12. test_returns_all_keys
+13. test_returns_empty_list_when_no_keys
+14. test_includes_active_and_inactive_keys
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/db/api_keys.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: create_api_keys_table function implemented
+4. ✓ file_contains: insert_api_key function implemented
+5. ✓ tests_pass: All 14 tests in tests/test_db_api_keys.py pass
+
+All 5 evals passed successfully.
+
+### Learnings
+- Ruff's UP017 rule automatically modernized timezone.utc to datetime.UTC (Python 3.11+ alias)
+- Using sqlite3.IntegrityError is more specific than bare Exception for UNIQUE constraints
+- Returning dicts instead of tuples makes query results more maintainable and readable
+- Pre-commit hooks enforce code quality - had to fix B017 (blind exception catching)
+- The _row_to_dict helper provides a single source of truth for field mapping
+- SQLite's last_insert_rowid() gives us the auto-generated ID after INSERT
+- datetime.now(datetime.UTC).isoformat() produces consistent ISO 8601 timestamps
+- Committing after each successful operation ensures data persistence
+
+### New tasks created
+None
+
+### Git commit
+Created commit 6dc604e: "feat: add api_keys table with CRUD operations"
+- Added 2 files: src/hikuweb/db/api_keys.py (159 lines), tests/test_db_api_keys.py (280 lines)
+- 428 insertions total
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+- Fixed tests to use sqlite3.IntegrityError instead of bare Exception
+
+---
+## [9] Extraction Logs Table - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T08:02:56-08:00
+
+### What I did
+Created comprehensive test suite for the extraction_logs table following TDD RED phase. Wrote 18 failing test methods across 5 test classes covering all CRUD operations, pagination, counting, and aggregated usage statistics. The tests define the complete API contract for extraction_logs database operations before implementation.
+
+### Output/Results
+Created tests/test_db_extraction_logs.py with 358 lines:
+
+**Test Classes and Coverage:**
+1. TestCreateExtractionLogsTable (1 test):
+   - test_creates_table: Verifies table creation with 8 columns (id, api_key_id, url, schema_hash, status, error_message, created_at, duration_ms)
+
+2. TestInsertExtractionLog (3 tests):
+   - test_inserts_and_returns_id: Verifies auto-incrementing ID generation
+   - test_stores_all_fields: Validates all fields stored correctly including error status
+   - test_allows_null_error_message: Ensures error_message can be NULL for successful extractions
+
+3. TestGetLogsByApiKey (6 tests):
+   - test_returns_logs_for_api_key: Retrieves logs filtered by api_key_id
+   - test_returns_empty_list_for_nonexistent_key: Handles missing API keys gracefully
+   - test_supports_pagination_with_limit: Tests LIMIT clause
+   - test_supports_pagination_with_offset: Tests LIMIT + OFFSET for pagination
+   - test_returns_dict_with_all_fields: Ensures dict structure with all 8 fields
+
+4. TestCountLogsByApiKey (2 tests):
+   - test_returns_correct_count: Counts total logs for API key
+   - test_returns_zero_for_nonexistent_key: Returns 0 for missing keys
+
+5. TestGetUsageStats (5 tests):
+   - test_returns_all_stat_fields: Verifies dict has all required fields (total, success_count, error_count, blocked_count, avg_duration_ms)
+   - test_calculates_counts_correctly: Tests aggregation by status type
+   - test_calculates_average_duration: Verifies AVG(duration_ms) calculation
+   - test_returns_zeros_for_nonexistent_key: Handles missing keys with zero stats
+   - test_only_counts_logs_for_specific_api_key: Ensures proper filtering
+
+**Table Schema Definition (from tests):**
+- id: INTEGER PRIMARY KEY AUTOINCREMENT
+- api_key_id: INTEGER NOT NULL (foreign key to api_keys.id)
+- url: TEXT NOT NULL (the URL that was extracted)
+- schema_hash: TEXT NOT NULL (hash of JSON schema for deduplication)
+- status: TEXT NOT NULL (enum: "success", "error", "blocked")
+- error_message: TEXT (nullable, only for error/blocked status)
+- created_at: TEXT NOT NULL (ISO 8601 timestamp)
+- duration_ms: INTEGER NOT NULL (extraction duration in milliseconds)
+
+Tests properly fail with ModuleNotFoundError as expected in TDD RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_db_extraction_logs.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: create_extraction_logs_table function referenced
+4. ✓ file_contains: get_usage_stats function referenced
+
+All 4 evals passed successfully.
+
+### Learnings
+- TDD RED phase creates comprehensive specification via failing tests before implementation
+- Testing aggregation functions (COUNT, AVG) requires multiple test cases for accuracy
+- Pagination testing needs both LIMIT and OFFSET parameters validated separately
+- Usage statistics require testing edge cases (zero stats for nonexistent keys)
+- Using dict return types makes test assertions clearer than tuple indexing
+- Testing all three status types (success, error, blocked) ensures proper enum handling
+- The db_connection fixture enables clean test isolation per test method
+- NULL handling for optional fields (error_message) requires explicit test coverage
+
+### New tasks created
+None
+
