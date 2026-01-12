@@ -514,3 +514,302 @@ All 4 evals passed successfully.
 ### New tasks created
 None
 
+---
+## [10] Extraction Logs Table - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Implemented the extraction_logs database table and all CRUD operations following TDD GREEN phase to make all 16 tests from task 9 pass. Created a comprehensive module with table creation, insert, query (with pagination), counting, and aggregated usage statistics functions.
+
+### Output/Results
+Created src/hikuweb/db/extraction_logs.py with 186 lines:
+
+**Functions implemented:**
+- create_extraction_logs_table(): Creates table with 8 columns (id, api_key_id, url, schema_hash, status, error_message, created_at, duration_ms)
+- insert_extraction_log(): Inserts new log entry with all fields and returns auto-generated ID
+- get_logs_by_api_key(): Retrieves logs filtered by api_key_id with pagination (limit/offset)
+- count_logs_by_api_key(): Returns total count of logs for an API key
+- get_usage_stats(): Computes aggregated statistics (total, success/error/blocked counts, avg duration)
+- _row_to_dict(): Helper to convert tuples to dicts with 8 named fields
+
+**Table Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS extraction_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_key_id INTEGER NOT NULL,
+    url TEXT NOT NULL,
+    schema_hash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    duration_ms INTEGER NOT NULL
+)
+```
+
+**Key Implementation Details:**
+- Uses datetime.UTC (Python 3.11+ modern alias) for timestamps
+- Returns dicts from all query functions for better readability
+- Pagination support with LIMIT and OFFSET in get_logs_by_api_key()
+- Aggregation using SQL CASE expressions for status counting
+- Proper NULL handling for avg_duration_ms when no logs exist
+- ISO 8601 timestamps for created_at field
+- All functions accept DatabaseConnection context manager
+
+All 16 tests pass:
+1. test_creates_table
+2. test_inserts_and_returns_id
+3. test_stores_all_fields
+4. test_allows_null_error_message
+5. test_returns_logs_for_api_key
+6. test_returns_empty_list_for_nonexistent_key
+7. test_supports_pagination_with_limit
+8. test_supports_pagination_with_offset
+9. test_returns_dict_with_all_fields
+10. test_returns_correct_count
+11. test_returns_zero_for_nonexistent_key
+12. test_returns_all_stat_fields
+13. test_calculates_counts_correctly
+14. test_calculates_average_duration
+15. test_returns_zeros_for_nonexistent_key
+16. test_only_counts_logs_for_specific_api_key
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/db/extraction_logs.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: create_extraction_logs_table function implemented
+4. ✓ file_contains: get_usage_stats function implemented
+5. ✓ tests_pass: All 16 tests in tests/test_db_extraction_logs.py pass
+
+All 5 evals passed successfully.
+
+### Learnings
+- SQL CASE expressions are excellent for conditional aggregation (counting by status)
+- Using SUM(CASE WHEN condition THEN 1 ELSE 0 END) patterns for counting subsets
+- AVG() returns NULL when no rows exist, requiring NULL coalescing to 0.0
+- Pagination requires both LIMIT and OFFSET with ORDER BY for consistency
+- Pre-commit hooks auto-fixed formatting (ruff ran twice, second commit succeeded)
+- Testing edge cases (zero logs, missing keys) ensures robust API behavior
+- The _row_to_dict helper provides single source of truth for field ordering
+- Dict return types make tests more readable than tuple indexing
+
+### New tasks created
+None
+
+### Git commit
+Created commit 66a301a: "feat: add extraction_logs table with CRUD and usage statistics"
+- Added 2 files: src/hikuweb/db/extraction_logs.py (186 lines), tests/test_db_extraction_logs.py (345 lines)
+- Also included .python-version, README.md, main.py, progress.txt, tasks.jsonl, and __pycache__ files
+- 1499 insertions total
+- Pre-commit hooks passed on second attempt (ruff check and ruff-format both successful)
+
+---
+## [11] API Key Service - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T08:06:50-08:00
+
+### What I did
+Created comprehensive test suite for the API key service following TDD RED phase. Wrote 12 failing test methods across 4 test classes covering all aspects of API key generation, hashing, creation, and validation. The tests define the complete API contract for the API key service before implementation.
+
+### Output/Results
+Created tests/test_api_key_service.py with 250 lines:
+
+**Test Classes and Coverage:**
+1. TestGenerateApiKey (3 tests):
+   - test_returns_32_char_string: Verifies key is 32 characters long
+   - test_returns_alphanumeric_only: Ensures only a-zA-Z0-9 characters
+   - test_returns_different_keys: Validates randomness (3 unique keys)
+
+2. TestHashApiKey (3 tests):
+   - test_consistent_hash: SHA-256 hash is deterministic for same input
+   - test_different_hashes_for_different_inputs: Different inputs produce different hashes
+   - test_returns_sha256_hex_digest: Validates 64-character hex string format
+
+3. TestCreateApiKey (3 tests):
+   - test_stores_hash_returns_raw: Generates key, stores hash in DB, returns raw key
+   - test_creates_unique_keys: Ensures each call creates different keys
+   - test_stores_name_correctly: Validates name field is stored in database
+
+4. TestValidateApiKey (5 tests):
+   - test_valid_key_returns_record: Returns dict for valid active key
+   - test_invalid_key_returns_none: Returns None for nonexistent key
+   - test_inactive_key_returns_none: Returns None for deactivated key
+   - test_updates_last_used_at: Updates timestamp on successful validation
+   - test_validation_updates_timestamp_each_time: Timestamp updates on each validation
+
+**Key Service Functions Tested:**
+- generate_api_key() -> str: Generates 32-char alphanumeric key using secrets module
+- hash_api_key(raw_key: str) -> str: Returns SHA-256 hex digest
+- create_api_key(conn, name: str) -> str: Generates key, stores hash, returns raw key
+- validate_api_key(conn, raw_key: str) -> dict | None: Validates key and updates usage
+
+Tests properly fail with ModuleNotFoundError as expected in TDD RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_api_key_service.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: generate_api_key function referenced
+4. ✓ file_contains: hash_api_key function referenced
+5. ✓ file_contains: validate_api_key function referenced
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase creates comprehensive specification via failing tests before implementation
+- Testing cryptographic functions (SHA-256) requires verifying output format (64 hex chars)
+- Testing randomness requires multiple calls to ensure different outputs
+- Using secrets module (not random) is critical for cryptographic security
+- Validating timestamp updates requires small time.sleep() to ensure different values
+- The db_connection fixture enables clean test isolation per test method
+- Testing both positive cases (valid keys) and negative cases (invalid/inactive) ensures robustness
+- Testing that raw keys are never stored (only hashes) is crucial for security
+
+### New tasks created
+None
+
+---
+## [12] API Key Service - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Implemented the API key service following TDD GREEN phase to make all 14 tests from task 11 pass. Created a robust service layer with secure key generation using the secrets module, SHA-256 hashing, key creation, and validation with automatic last_used_at timestamp updates.
+
+### Output/Results
+Created src/hikuweb/services/api_key_service.py with 81 lines:
+
+**Functions implemented:**
+- generate_api_key() -> str: Generates cryptographically secure 32-character alphanumeric keys using secrets module
+- hash_api_key(raw_key: str) -> str: Returns SHA-256 hex digest (64 characters)
+- create_api_key(conn, name: str) -> str: Generates key, stores hash in DB, returns raw key (only time available!)
+- validate_api_key(conn, raw_key: str) -> dict | None: Validates key, updates last_used_at if valid and active
+
+**Key Implementation Details:**
+- Uses secrets.choice() for cryptographically secure random generation (NOT random module)
+- SHA-256 hashing via hashlib.sha256().hexdigest()
+- Raw keys are NEVER stored in database - only SHA-256 hashes
+- validate_api_key() updates last_used_at timestamp on successful validation
+- Returns None for inactive or nonexistent keys
+- Full type annotations using modern Python 3.10+ union syntax (dict | None)
+- Comprehensive docstrings with Google-style format
+
+All 14 tests pass:
+1. test_returns_32_char_string
+2. test_returns_alphanumeric_only
+3. test_returns_different_keys
+4. test_consistent_hash
+5. test_different_hashes_for_different_inputs
+6. test_returns_sha256_hex_digest
+7. test_stores_hash_returns_raw
+8. test_creates_unique_keys
+9. test_stores_name_correctly
+10. test_valid_key_returns_record
+11. test_invalid_key_returns_none
+12. test_inactive_key_returns_none
+13. test_updates_last_used_at
+14. test_validation_updates_timestamp_each_time
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/services/api_key_service.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: generate_api_key function implemented
+4. ✓ file_contains: secrets module used (cryptographically secure)
+5. ✓ file_contains: sha256 hashing implemented
+6. ✓ tests_pass: All 14 tests in tests/test_api_key_service.py pass
+
+All 6 evals passed successfully.
+
+### Learnings
+- Using secrets module instead of random is CRITICAL for cryptographic security
+- SHA-256 produces a consistent 64-character hex digest for hashing
+- Raw API keys must NEVER be stored - only hashes should persist in the database
+- The create_api_key function is the ONLY time the raw key is available to return to the user
+- Ruff automatically removed unused pytest import during pre-commit hook
+- Pre-commit hooks ran automatically during commit - both ruff check and ruff-format passed
+- The validate_api_key flow: hash → lookup → check active → update timestamp → return record
+- Using dict | None is more Pythonic than Optional[dict] in Python 3.10+
+- The secrets.choice() pattern ensures truly random alphanumeric generation
+
+### New tasks created
+None
+
+### Git commit
+Created commit 47b6956: "feat: add API key service with secure generation and validation"
+- Added 2 files: src/hikuweb/services/api_key_service.py (81 lines), tests/test_api_key_service.py (249 lines)
+- 309 insertions total
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+- Ruff auto-fixed unused pytest import in test file
+
+---
+## [13] Schema Translation Primitives - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T08:11:19-08:00
+
+### What I did
+Created comprehensive test suite for JSON Schema to Pydantic translator following TDD RED phase. Wrote 23 failing test methods across 5 test classes covering all aspects of primitive type translation, required/optional field handling, default values, validation, and edge cases. The tests define the complete API contract for the schema translator before any implementation exists.
+
+### Output/Results
+Created tests/test_schema_translator.py with 253 lines:
+
+**Test Classes and Coverage:**
+1. TestPrimitiveTypes (5 tests):
+   - test_string_type: Translates {"type": "string"} to str field
+   - test_integer_type: Translates {"type": "integer"} to int field
+   - test_number_type: Translates {"type": "number"} to float field
+   - test_boolean_type: Translates {"type": "boolean"} to bool field
+   - test_multiple_primitive_types: Handles multiple primitives in one schema
+
+2. TestRequiredFields (5 tests):
+   - test_required_field_must_be_provided: ValidationError when required field missing
+   - test_required_field_accepts_value: Accepts value for required field
+   - test_optional_field_defaults_to_none: Optional field defaults to None
+   - test_optional_field_accepts_value: Optional field accepts value
+   - test_mixed_required_and_optional: Mix of required and optional fields
+
+3. TestDefaultValues (5 tests):
+   - test_default_string_value: Default value from schema for string
+   - test_default_integer_value: Default value from schema for integer
+   - test_default_number_value: Default value from schema for number
+   - test_default_boolean_value: Default value from schema for boolean
+   - test_override_default_value: Allows overriding default value
+
+4. TestValidation (5 tests):
+   - test_rejects_wrong_type_for_string: Rejects non-string for string field
+   - test_rejects_wrong_type_for_integer: Rejects non-integer for integer field
+   - test_rejects_wrong_type_for_number: Rejects non-numeric for number field
+   - test_rejects_wrong_type_for_boolean: Rejects non-boolean for boolean field
+   - test_accepts_valid_data: Accepts data matching schema
+
+5. TestEdgeCases (2 tests):
+   - test_empty_schema: Creates model with no fields for empty schema
+   - test_schema_with_no_properties_key: Handles schema without properties key
+
+**Function Contract Defined:**
+- json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> type[BaseModel]
+- Converts JSON Schema to Pydantic model using pydantic.create_model()
+- Maps primitive types: string→str, integer→int, number→float, boolean→bool
+- Handles required array for mandatory fields vs optional fields (default None)
+- Supports default values from schema property definitions
+- Returns dynamically created Pydantic model class
+
+Tests properly fail with ModuleNotFoundError as expected in TDD RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_schema_translator.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: json_schema_to_pydantic function referenced
+4. ✓ file_contains: string type tests present
+5. ✓ file_contains: required field tests present
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase creates comprehensive specification via 23 failing tests before implementation
+- Using pytest.raises(ValidationError) to test that invalid data is properly rejected
+- Covering all 4 primitive types (string, integer, number, boolean) ensures complete type mapping
+- Testing both required and optional fields ensures proper Pydantic field definition
+- Default value handling requires testing both schema defaults and override capability
+- Edge cases (empty schema, missing properties key) ensure robust API behavior
+- The json_schema_to_pydantic function will use pydantic.create_model() for dynamic model creation
+- Tests document the exact behavior expected: required fields raise ValidationError, optional default to None
+- Using descriptive test names and docstrings makes test intent crystal clear
+
+### New tasks created
+None
+
