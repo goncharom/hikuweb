@@ -4,7 +4,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from hikuweb.db.api_keys import create_api_keys_table, deactivate_api_key
 from hikuweb.db.connection import DatabaseConnection
+from hikuweb.services.api_key_service import create_api_key
 
 
 @pytest.fixture
@@ -29,3 +31,46 @@ def client():
 
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def test_api_key(client):
+    """Provides a valid test API key stored in the database.
+
+    Returns:
+        str: Raw API key string for use in X-API-Key header.
+    """
+    from hikuweb.config import get_settings
+    from hikuweb.db.connection import get_db_connection
+
+    settings = get_settings()
+    with get_db_connection(settings.database_path) as conn:
+        create_api_keys_table(conn)
+        raw_key = create_api_key(conn, "test-key")
+    return raw_key
+
+
+@pytest.fixture
+def inactive_api_key(client):
+    """Provides an inactive test API key stored in the database.
+
+    Returns:
+        str: Raw API key string that has been deactivated.
+    """
+    from hikuweb.config import get_settings
+    from hikuweb.db.connection import get_db_connection
+
+    settings = get_settings()
+    with get_db_connection(settings.database_path) as conn:
+        create_api_keys_table(conn)
+        raw_key = create_api_key(conn, "inactive-key")
+        # Get the key ID to deactivate it
+        from hikuweb.services.api_key_service import hash_api_key
+
+        key_hash = hash_api_key(raw_key)
+        from hikuweb.db.api_keys import get_api_key_by_hash
+
+        key_record = get_api_key_by_hash(conn, key_hash)
+        if key_record:
+            deactivate_api_key(conn, key_record["id"])
+    return raw_key

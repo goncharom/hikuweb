@@ -1475,3 +1475,51 @@ Created commit 84fff7c: "feat: add FastAPI app skeleton with health endpoint"
 - 139 insertions, 1 deletion
 - Pre-commit hooks passed: ruff check and ruff-format both successful
 
+---
+## [25] Authentication Dependency - WRITE TESTS FIRST (TDD RED)
+Completed: $(date -Iseconds)
+
+### What I did
+Created comprehensive test suite for API key authentication FastAPI dependency following TDD RED phase. Wrote 7 failing test methods covering all aspects of API key authentication including missing keys, invalid keys, inactive keys, valid keys, dependency injection, and error messaging. Updated conftest.py with fixtures for creating test API keys (both active and inactive) in the database.
+
+### Output/Results
+Created tests/test_api_auth.py with 77 lines:
+
+**Test Classes and Coverage:**
+TestAuthDependency (7 tests):
+1. test_missing_api_key_returns_401 - Verifies 401 when X-API-Key header missing
+2. test_invalid_api_key_returns_401 - Verifies 401 when API key is invalid
+3. test_inactive_api_key_returns_401 - Verifies 401 when API key is deactivated
+4. test_valid_api_key_succeeds - Verifies 200 when valid API key provided
+5. test_auth_injects_api_key_record - Verifies api_key_record dict is injected into route handler
+6. test_error_response_includes_message - Verifies appropriate error message in 401 response for missing key
+7. test_error_response_includes_message_for_invalid - Verifies appropriate error message for invalid key
+
+Updated tests/conftest.py with new fixtures:
+- test_api_key fixture: Creates active API key in database and returns raw key string
+- inactive_api_key fixture: Creates API key, deactivates it, returns raw key string
+
+**Test Results (TDD RED - Expected Failures):**
+All 7 tests fail with 404 status code (endpoint doesn't exist yet). This is the expected behavior for TDD RED phase.
+
+### Evals Run
+1. ✓ file_exists: tests/test_api_auth.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: X-API-Key header referenced
+4. ✓ file_contains: 401 status code tests present
+5. ✓ file_contains: test_api_key fixture present in conftest.py
+
+All 5 evals passed successfully.
+
+### Learnings
+- TDD RED phase successfully creates comprehensive failing tests for authentication dependency
+- Tests cover all authentication states: missing, invalid, inactive, and valid keys
+- Fixtures properly create and manage API keys in the database for test isolation
+- The inactive_api_key fixture demonstrates proper setup: create key, deactivate it, return raw key
+- Tests expect /auth-test endpoint which will be created in task 26 (GREEN phase)
+- Error messages are tested to ensure helpful user feedback
+- All tests fail with 404 (endpoint doesn't exist) which is the expected TDD RED behavior
+
+### New tasks created
+None - task 26 is already defined for implementation phase
+
