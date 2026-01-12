@@ -813,3 +813,187 @@ All 5 evals passed successfully.
 ### New tasks created
 None
 
+---
+## [14] Schema Translation Primitives - IMPLEMENT (TDD GREEN)
+Completed: 2026-01-12T08:13:56-08:00
+
+### What I did
+Implemented the JSON Schema to Pydantic translator service following TDD GREEN phase to make all 22 tests from task 13 pass. Created a clean implementation using pydantic.create_model() for dynamic model creation with full support for primitive types, required/optional fields, and default values.
+
+### Output/Results
+Created src/hikuweb/services/schema_translator.py with 69 lines:
+
+**Functions implemented:**
+- _map_primitive_type(prop: dict) -> type: Maps JSON Schema types to Python types using TYPE_MAP
+- json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> type: Main translator function
+
+**Type Mapping:**
+- "string" → str
+- "integer" → int
+- "number" → float
+- "boolean" → bool
+- unknown types → Any
+
+**Key Implementation Details:**
+- Uses pydantic.create_model() for dynamic model generation
+- Required fields: Uses Ellipsis (...) to indicate no default
+- Optional fields: Uses field_type | None union type with default value from schema or None
+- Handles empty schemas and missing properties key gracefully
+- Full type annotations with modern Python 3.10+ union syntax (X | None)
+- Comprehensive docstring with example usage
+
+**Test Coverage:**
+All 22 tests pass across 5 test classes:
+1. TestPrimitiveTypes (5 tests) - All 4 primitive types plus multi-field schemas
+2. TestRequiredFields (5 tests) - Required vs optional field handling
+3. TestDefaultValues (5 tests) - Default value support from schema
+4. TestValidation (5 tests) - Type validation and rejection
+5. TestEdgeCases (2 tests) - Empty schemas and missing properties
+
+Added `# ruff: noqa: N806` to test file to suppress false-positive naming warnings for `Model` variables (appropriate since they hold class references).
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/services/schema_translator.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: create_model import present
+4. ✓ file_contains: json_schema_to_pydantic function implemented
+5. ✓ tests_pass: All 22 tests in tests/test_schema_translator.py pass
+
+All 5 evals passed successfully.
+
+### Learnings
+- Using pydantic.create_model() enables runtime model creation from JSON Schema
+- The Ellipsis (...) in Pydantic field definitions marks required fields
+- Modern Python 3.10+ union syntax (field_type | None) is cleaner than Optional[field_type]
+- The ruff N806 rule (variable naming) requires exceptions for dynamically created classes
+- JSON Schema's "required" array determines which fields have no default
+- Default values from schema override the None default for optional fields
+- Pre-commit hooks ran automatically and passed on first attempt
+- All TDD tests passed on first implementation run (proper RED-GREEN-REFACTOR cycle)
+
+### New tasks created
+None
+
+### Git commit
+Created commit d0f9924: "feat: implement JSON Schema to Pydantic translator for primitive types"
+- Added 2 files: src/hikuweb/services/schema_translator.py (69 lines), tests/test_schema_translator.py (255 lines)
+- Also committed __pycache__ files generated during test runs
+- 623 insertions total
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+
+---
+## [15] Schema Translation Arrays - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T08:16:20-08:00
+
+### What I did
+Extended the test suite for JSON Schema to Pydantic translator by adding comprehensive array type tests following TDD RED phase. Created a new TestArrayTypes class with 9 test methods covering all aspects of array field translation including primitive array types (string, integer, number, boolean), arrays without item specifications, required/optional array handling, and validation.
+
+### Output/Results
+Added TestArrayTypes class to tests/test_schema_translator.py with 9 new tests:
+
+**Test Coverage Added:**
+1. test_array_of_strings - Verifies {"type": "array", "items": {"type": "string"}} → list[str]
+2. test_array_of_integers - Verifies {"type": "array", "items": {"type": "integer"}} → list[int]
+3. test_array_of_numbers - Verifies {"type": "array", "items": {"type": "number"}} → list[float]
+4. test_array_of_booleans - Verifies {"type": "array", "items": {"type": "boolean"}} → list[bool]
+5. test_array_without_items - Verifies arrays without "items" default to list[Any]
+6. test_required_array_field - Ensures ValidationError when required array missing
+7. test_optional_array_field_defaults_to_none - Optional arrays default to None (not [])
+8. test_validates_array_data_correctly - Validates array element types
+9. test_rejects_non_array_for_array_field - Should reject non-array for array field (FAILING)
+
+**Test Results:**
+- 30/31 tests pass (all primitive tests + 8/9 new array tests)
+- 1/31 tests fails as expected (test_rejects_non_array_for_array_field)
+- The failure indicates that current implementation uses `Any` type for arrays, which allows Pydantic's type coercion to convert strings to arrays
+
+Updated ABOUTME comment to reflect array support testing.
+
+### Evals Run
+1. ✓ file_contains: tests/test_schema_translator.py contains "array"
+2. ✓ file_contains: tests/test_schema_translator.py contains "list"
+3. ✓ file_contains: tests/test_schema_translator.py contains "items"
+
+All 3 evals passed successfully.
+
+### Learnings
+- TDD RED phase successfully identified implementation gap: current code uses `Any` for arrays, not proper list[T] types
+- Most array tests pass due to Pydantic's smart type coercion with `Any` type
+- The failing test (rejects non-array) reveals that type validation is too permissive
+- Arrays require explicit handling in _map_primitive_type or a new helper function
+- Testing all 4 primitive array types ensures complete coverage for task 16 implementation
+- Optional arrays should default to None, not empty list [] (important semantic difference)
+- The test structure follows existing patterns (TestArrayTypes parallels TestPrimitiveTypes)
+- All 22 previous primitive tests continue to pass (no regressions)
+
+### New tasks created
+None - task 16 is already defined for implementation phase
+
+---
+## [16] Schema Translation Arrays - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Extended the schema translator to handle array types following TDD GREEN phase to make all 9 new array tests from task 15 pass while keeping all 22 primitive tests passing. Created a new `_get_field_type()` helper function that detects array types and recursively maps the items type to `list[T]` where T is the primitive inner type.
+
+### Output/Results
+Updated src/hikuweb/services/schema_translator.py (90 lines, +24 lines):
+- Added `_get_field_type()` function to handle both primitive and array types
+- Updated `_map_primitive_type()` to handle None type gracefully
+- Array handling logic:
+  - Detects `{"type": "array"}` in property definition
+  - Looks at `"items"` to determine inner type (string→str, integer→int, number→float, boolean→bool)
+  - Returns `list[inner_type]` for typed arrays
+  - Returns `list[Any]` for arrays without items specification
+- Modified `json_schema_to_pydantic()` to call `_get_field_type()` instead of `_map_primitive_type()`
+- Updated ABOUTME comment to reflect array support
+
+**Type Mapping Extended:**
+- `{"type": "array", "items": {"type": "string"}}` → list[str]
+- `{"type": "array", "items": {"type": "integer"}}` → list[int]
+- `{"type": "array", "items": {"type": "number"}}` → list[float]
+- `{"type": "array", "items": {"type": "boolean"}}` → list[bool]
+- `{"type": "array"}` → list[Any]
+
+All 31 tests pass (22 primitive + 9 array):
+1. All 5 TestPrimitiveTypes tests (no regressions)
+2. All 5 TestRequiredFields tests (no regressions)
+3. All 5 TestDefaultValues tests (no regressions)
+4. All 5 TestValidation tests (no regressions)
+5. All 2 TestEdgeCases tests (no regressions)
+6. test_array_of_strings - ✓
+7. test_array_of_integers - ✓
+8. test_array_of_numbers - ✓
+9. test_array_of_booleans - ✓
+10. test_array_without_items - ✓
+11. test_required_array_field - ✓
+12. test_optional_array_field_defaults_to_none - ✓
+13. test_validates_array_data_correctly - ✓
+14. test_rejects_non_array_for_array_field - ✓
+
+### Evals Run
+1. ✓ file_contains: "array" pattern found in src/hikuweb/services/schema_translator.py
+2. ✓ file_contains: "list[" pattern found (modern Python 3.10+ syntax, not List[])
+3. ✓ tests_pass: All 31 tests in tests/test_schema_translator.py pass
+
+All 3 evals passed successfully.
+
+### Learnings
+- Modern Python 3.10+ uses `list[T]` instead of `List[T]` from typing module
+- Creating a separate `_get_field_type()` function keeps code clean and testable
+- The implementation correctly handles arrays without items specification by defaulting to `list[Any]`
+- All previous primitive tests continue to pass - no regressions introduced
+- Pre-commit hooks passed on first attempt (ruff check and ruff-format both successful)
+- Using `Any` as return type for helper functions prevents type checker issues with dynamic types
+- Pydantic properly validates array element types with `list[str]`, `list[int]`, etc.
+- The 9th array test (test_rejects_non_array_for_array_field) now passes with proper list[] typing
+
+### New tasks created
+None - task 17 is already defined for nested object support
+
+### Git commit
+Created commit 17cab44: "feat: extend schema translator with array support"
+- Modified 2 files: src/hikuweb/services/schema_translator.py (+18 lines, 90 total), tests/test_schema_translator.py (+109 lines from task 15)
+- 127 insertions, 5 deletions
+- Pre-commit hooks passed: ruff check and ruff-format both successful
+
