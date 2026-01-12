@@ -1301,3 +1301,71 @@ All 5 evals passed successfully.
 ### New tasks created
 None - task 22 is already defined for implementation phase (TDD GREEN)
 
+
+---
+## [22] Rate Limiter Service - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Implemented the per-domain rate limiter service following TDD GREEN phase to make all 12 tests from task 21 pass. Created a thread-safe rate limiter using the token bucket algorithm with domain tracking, request acquisition, wait time calculation, and cleanup functionality.
+
+### Output/Results
+Created src/hikuweb/services/rate_limiter.py with 106 lines:
+
+**Class: DomainRateLimiter**
+- __init__(requests_per_second: float = 1.0): Initializes rate limiter with configurable rate
+- extract_domain(url: str) -> str: Extracts domain (netloc) from URL using urlparse
+- acquire(url: str) -> bool: Attempts to acquire permission for a request (True if allowed, False if rate limited)
+- wait_time(url: str) -> float: Calculates seconds until next request is allowed (0.0 if ready)
+- cleanup(max_age_seconds: float = 3600) -> int: Removes old entries to prevent memory leaks
+
+**Key Implementation Details:**
+- Thread-safe using threading.Lock for all operations
+- Simple token bucket algorithm: one request per (1/requests_per_second) seconds per domain
+- Uses time.time() for timestamps
+- _last_request dict tracks last request timestamp per domain
+- min_interval computed as 1.0 / requests_per_second
+- Full type annotations with modern Python 3.10+ syntax (dict[str, float])
+- Comprehensive docstrings with Google-style format and examples
+
+All 12 tests pass:
+1. test_allows_first_request - First request to domain is allowed
+2. test_blocks_rapid_requests - Rapid successive requests blocked
+3. test_allows_requests_after_waiting - Requests allowed after waiting
+4. test_different_domains_independent - Different domains tracked independently
+5. test_wait_time_returns_seconds - Returns correct wait time
+6. test_wait_time_zero_when_ready - Returns 0.0 when ready
+7. test_wait_time_decreases_over_time - Wait time decreases as time passes
+8. test_extract_domain_from_url - Correctly extracts domain from various URL formats
+9. test_cleanup_removes_old_entries - Cleanup removes old entries
+10. test_cleanup_keeps_recent_entries - Cleanup keeps recent entries
+11. test_same_path_different_pages_treated_as_same_domain - Different paths on same domain rate limited together
+12. test_thread_safety_basic - Basic thread safety structure in place
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/services/rate_limiter.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: DomainRateLimiter class implemented
+4. ✓ file_contains: threading.Lock usage present
+5. ✓ tests_pass: All 12 tests in tests/test_rate_limiter.py pass
+
+All 5 evals passed successfully.
+
+### Learnings
+- threading.Lock provides simple thread-safe synchronization with context manager support (with self._lock)
+- Token bucket algorithm is simple: track last request time, enforce minimum interval
+- Using urlparse(url).netloc is the standard way to extract domain from URLs
+- The wait_time calculation: max(0, min_interval - elapsed_time) ensures non-negative values
+- Cleanup is essential for long-running services to prevent memory leaks from accumulating domain entries
+- Pre-commit hooks passed on first attempt (ruff check and ruff-format both successful)
+- All tests passed on first implementation run (proper TDD RED-GREEN cycle)
+- Different paths on same domain should be rate limited together (per-domain, not per-URL)
+
+### New tasks created
+None - task 23 is already defined for FastAPI health endpoint
+
+### Git commit
+Created commit 8edbd87: "feat: add per-domain rate limiter with token bucket algorithm"
+- Added 1 file: src/hikuweb/services/rate_limiter.py (106 lines)
+- 106 insertions total
+- Pre-commit hooks passed: ruff check and ruff-format both successful
