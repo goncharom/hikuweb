@@ -1,5 +1,5 @@
 # ABOUTME: Translates JSON Schema definitions to Pydantic models.
-# ABOUTME: Supports primitive types and arrays with required/optional field handling.
+# ABOUTME: Supports primitive types, arrays, and nested objects with recursion.
 
 from typing import Any
 
@@ -28,20 +28,36 @@ def _map_primitive_type(prop: dict) -> Any:
     return TYPE_MAP.get(prop_type, Any)
 
 
-def _get_field_type(prop: dict) -> Any:
-    """Get field type including array support.
+def _get_field_type(prop: dict, model_name: str, field_name: str) -> Any:
+    """Get field type including array and nested object support.
 
     Args:
         prop: Property definition from JSON Schema.
+        model_name: Parent model name for generating nested model names.
+        field_name: Field name for generating nested model names.
 
     Returns:
-        Python type for the field (primitive or list[T]).
+        Python type for the field (primitive, list[T], or nested model).
     """
     prop_type = prop.get("type")
 
+    if prop_type == "object":
+        # Recursively create nested Pydantic model
+        nested_model_name = f"{model_name}_{field_name}"
+        return json_schema_to_pydantic(prop, nested_model_name)
+
     if prop_type == "array":
         items = prop.get("items", {})
-        inner_type = _map_primitive_type(items)
+        items_type = items.get("type")
+
+        if items_type == "object":
+            # Array of objects - recursively create model for array items
+            nested_model_name = f"{model_name}_{field_name}_item"
+            inner_type = json_schema_to_pydantic(items, nested_model_name)
+        else:
+            # Array of primitives
+            inner_type = _map_primitive_type(items)
+
         return list[inner_type]
 
     return _map_primitive_type(prop)
@@ -74,7 +90,7 @@ def json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> t
 
     field_definitions = {}
     for name, prop in properties.items():
-        field_type = _get_field_type(prop)
+        field_type = _get_field_type(prop, model_name, name)
 
         if name in required:
             # Required field: no default value (use ... Ellipsis)

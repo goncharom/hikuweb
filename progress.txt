@@ -997,3 +997,108 @@ Created commit 17cab44: "feat: extend schema translator with array support"
 - 127 insertions, 5 deletions
 - Pre-commit hooks passed: ruff check and ruff-format both successful
 
+---
+## [17] Schema Translation Nested Objects - WRITE TESTS FIRST (TDD RED)
+Completed: $(date -Iseconds)
+
+### What I did
+Extended the test suite for JSON Schema to Pydantic translator by adding comprehensive nested object tests following TDD RED phase. Created a new TestNestedObjects class with 7 test methods covering all aspects of nested object handling including single-level nesting, deeply nested objects (2+ levels), arrays of objects, required/optional nested fields, and validation of nested data.
+
+### Output/Results
+Added TestNestedObjects class to tests/test_schema_translator.py with 7 new tests (138 lines added):
+
+**Test Coverage Added:**
+1. test_nested_object - Verifies nested object property creates nested Pydantic model with dot notation access
+2. test_deeply_nested_objects - Tests 2+ levels of nesting (user.profile.bio pattern)
+3. test_array_of_objects - Verifies arrays of objects with proper model instantiation for each element
+4. test_required_nested_object_field - Ensures ValidationError when required nested object missing
+5. test_optional_nested_object_field_defaults_to_none - Optional nested objects default to None
+6. test_validates_nested_data_correctly - Validates nested object data with required fields
+7. test_rejects_invalid_nested_data - Rejects nested objects missing required fields
+
+**Test Results (TDD RED - Expected Failures):**
+- 5/7 tests FAIL as expected (AttributeError: 'dict' object has no attribute 'X')
+- 2/7 tests PASS (required/optional field handling already works due to existing logic)
+- All 31 previous tests (primitives, arrays, required/optional, defaults, validation, edge cases) continue to PASS
+
+The failures indicate current implementation treats nested objects as dicts, not nested Pydantic models. This is the expected behavior for TDD RED phase.
+
+Updated ABOUTME comment to reflect nested object testing support.
+
+### Evals Run
+1. ✓ file_contains: "nested" pattern found in tests/test_schema_translator.py
+2. ✓ file_contains: "address" pattern found in tests/test_schema_translator.py
+3. ✓ file_contains: "object" pattern found in tests/test_schema_translator.py
+
+All 3 evals passed successfully.
+
+### Learnings
+- TDD RED phase successfully identified implementation gap: current code doesn't recursively create nested models
+- 2/7 tests passed unexpectedly because optional/required logic already handles nested objects as Any type
+- The failure pattern (AttributeError on dict) clearly shows what needs implementing: recursive model creation
+- Testing both single-level and deeply nested objects ensures comprehensive coverage for task 18 implementation
+- Arrays of objects combine two complex features and will require special handling in _get_field_type()
+- The test_rejects_invalid_nested_data test reveals that validation isn't cascading to nested objects yet
+- All previous tests continue to pass (no regressions) - good sign for clean test structure
+- Using descriptive test names and docstrings makes test intent crystal clear for future implementation
+
+### New tasks created
+None - task 18 is already defined for implementation phase (TDD GREEN)
+
+---
+## [18] Schema Translation Nested Objects - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Extended the schema translator to handle nested objects following TDD GREEN phase to make all 7 nested object tests from task 17 pass while keeping all 31 previous tests passing. Updated the `_get_field_type()` function to recursively create nested Pydantic models for both single nested objects and arrays of objects.
+
+### Output/Results
+Updated src/hikuweb/services/schema_translator.py (104 lines, +16 lines):
+- Modified `_get_field_type()` signature to accept `model_name` and `field_name` parameters
+- Added nested object handling: detects `{"type": "object"}` and recursively calls `json_schema_to_pydantic()`
+- Added array of objects handling: detects `{"type": "array", "items": {"type": "object"}}` and recursively creates models
+- Generates unique nested model names using pattern: `{parent_model}_{field_name}` for objects and `{parent_model}_{field_name}_item` for array items
+- Updated `json_schema_to_pydantic()` to pass model_name and field_name to `_get_field_type()`
+- Updated ABOUTME comment to reflect nested object support
+
+**Type Mapping Extended:**
+- `{"type": "object", "properties": {...}}` → Nested Pydantic model (recursive)
+- `{"type": "array", "items": {"type": "object", "properties": {...}}}` → list[NestedModel]
+- Deeply nested objects (2+ levels) supported through recursion
+
+All 38 tests pass (22 primitive + 9 array + 7 nested):
+1. All 5 TestPrimitiveTypes tests (no regressions)
+2. All 5 TestRequiredFields tests (no regressions)
+3. All 5 TestDefaultValues tests (no regressions)
+4. All 5 TestValidation tests (no regressions)
+5. All 2 TestEdgeCases tests (no regressions)
+6. All 9 TestArrayTypes tests (no regressions)
+7. test_nested_object - ✓
+8. test_deeply_nested_objects - ✓
+9. test_array_of_objects - ✓
+10. test_required_nested_object_field - ✓
+11. test_optional_nested_object_field_defaults_to_none - ✓
+12. test_validates_nested_data_correctly - ✓
+13. test_rejects_invalid_nested_data - ✓
+
+### Evals Run
+1. ✓ file_contains: "object" pattern found in src/hikuweb/services/schema_translator.py
+2. ✓ file_contains: "recursive" pattern found in ABOUTME comment
+3. ✓ tests_pass: All 38 tests in tests/test_schema_translator.py pass
+
+All 3 evals passed successfully.
+
+### Learnings
+- Recursive model creation is the key pattern for nested objects in Pydantic
+- Generating unique model names prevents collisions: `ParentModel_fieldname` pattern works well
+- Arrays of objects combine two recursive patterns: array handling + object handling
+- The function signature needs model_name and field_name to generate unique nested model names
+- Pydantic properly validates nested required fields through the recursively created models
+- All previous tests continue to pass - no regressions introduced by nested object support
+- Pre-commit hooks passed on first attempt (ruff check and ruff-format both successful)
+- The implementation correctly handles deeply nested objects (2+ levels) through natural recursion
+- Using modern Python 3.10+ `list[T]` syntax instead of `List[T]` from typing module
+
+### New tasks created
+None - task 19 is already defined for robots.txt service
+

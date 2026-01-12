@@ -1,5 +1,5 @@
 # ABOUTME: Tests for JSON Schema to Pydantic model translation.
-# ABOUTME: Verifies primitive type mapping, arrays, required/optional handling.
+# ABOUTME: Verifies primitive types, arrays, nested objects, and required/optional handling.
 # ruff: noqa: N806
 
 import pytest
@@ -352,3 +352,154 @@ class TestArrayTypes:
         Model = json_schema_to_pydantic(schema)
         with pytest.raises(ValidationError):
             Model(tags="not_an_array")
+
+
+class TestNestedObjects:
+    """Tests for nested object type translations."""
+
+    def test_nested_object(self):
+        """Should translate nested object property to nested Pydantic model."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "address": {
+                    "type": "object",
+                    "properties": {
+                        "street": {"type": "string"},
+                        "city": {"type": "string"},
+                    },
+                    "required": ["street"],
+                },
+            },
+            "required": ["name"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(name="Test", address={"street": "123 Main", "city": "NYC"})
+        assert instance.name == "Test"
+        assert instance.address.street == "123 Main"
+        assert instance.address.city == "NYC"
+
+    def test_deeply_nested_objects(self):
+        """Should handle deeply nested objects (2+ levels)."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "profile": {
+                            "type": "object",
+                            "properties": {
+                                "bio": {"type": "string"},
+                                "age": {"type": "integer"},
+                            },
+                        },
+                    },
+                },
+            },
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(user={"name": "Alice", "profile": {"bio": "Engineer", "age": 30}})
+        assert instance.user.name == "Alice"
+        assert instance.user.profile.bio == "Engineer"
+        assert instance.user.profile.age == 30
+
+    def test_array_of_objects(self):
+        """Should handle arrays of objects."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "value": {"type": "integer"},
+                        },
+                    },
+                },
+            },
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(tags=[{"name": "tag1", "value": 1}, {"name": "tag2", "value": 2}])
+        assert len(instance.tags) == 2
+        assert instance.tags[0].name == "tag1"
+        assert instance.tags[0].value == 1
+        assert instance.tags[1].name == "tag2"
+        assert instance.tags[1].value == 2
+
+    def test_required_nested_object_field(self):
+        """Should enforce required nested object field."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "object",
+                    "properties": {"street": {"type": "string"}},
+                },
+            },
+            "required": ["address"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        with pytest.raises(ValidationError):
+            Model()
+
+    def test_optional_nested_object_field_defaults_to_none(self):
+        """Should default optional nested object field to None."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "object",
+                    "properties": {"street": {"type": "string"}},
+                },
+            },
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model()
+        assert instance.address is None
+
+    def test_validates_nested_data_correctly(self):
+        """Should validate nested object data correctly."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "person": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "age": {"type": "integer"},
+                    },
+                    "required": ["name"],
+                },
+            },
+            "required": ["person"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        instance = Model(person={"name": "Bob", "age": 25})
+        assert instance.person.name == "Bob"
+        assert instance.person.age == 25
+
+    def test_rejects_invalid_nested_data(self):
+        """Should reject invalid nested data."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "person": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "age": {"type": "integer"},
+                    },
+                    "required": ["name"],
+                },
+            },
+            "required": ["person"],
+        }
+        Model = json_schema_to_pydantic(schema)
+        # Missing required field 'name' in nested object
+        with pytest.raises(ValidationError):
+            Model(person={"age": 25})
