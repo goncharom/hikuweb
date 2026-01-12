@@ -1523,3 +1523,63 @@ All 5 evals passed successfully.
 ### New tasks created
 None - task 26 is already defined for implementation phase
 
+---
+## [26] Authentication Dependency - IMPLEMENT (TDD GREEN)
+Completed: 2026-01-12T14:00:00-08:00
+
+### What I did
+Implemented API key authentication FastAPI dependency following TDD GREEN phase to make all 7 tests from task 25 pass. Created src/hikuweb/api/dependencies.py with get_db() and get_api_key() dependency functions, and added /auth-test endpoint to routes.py for testing authentication flow.
+
+### Output/Results
+Created src/hikuweb/api/dependencies.py (51 lines):
+- get_db() dependency: Yields database connection from settings, ensures proper context management
+- get_api_key() dependency: Validates X-API-Key header against database, returns key record dict
+- api_key_header: APIKeyHeader security scheme for OpenAPI docs integration
+- Proper error handling with HTTPException(401) for missing, invalid, or inactive keys
+
+Updated src/hikuweb/api/routes.py:
+- Added AuthTestResponse model (authenticated: bool, key_name: str)
+- Added GET /auth-test endpoint requiring authentication via Depends(get_api_key)
+- Endpoint returns authenticated status and key name from injected api_key record
+
+**Key Implementation Details:**
+- Uses FastAPI's Depends() for dependency injection (standard pattern)
+- Added # ruff: noqa: B008 to suppress false-positive warnings about Depends in defaults
+- Auto-fixed imports: collections.abc.Generator instead of typing.Generator (Python 3.11+)
+- Removed unused Header import that was auto-detected by ruff
+- get_db() yields connection ensuring proper cleanup via context manager
+- validate_api_key() updates last_used_at timestamp on successful auth
+
+All 7 tests pass:
+1. test_missing_api_key_returns_401 ✓
+2. test_invalid_api_key_returns_401 ✓
+3. test_inactive_api_key_returns_401 ✓
+4. test_valid_api_key_succeeds ✓
+5. test_auth_injects_api_key_record ✓
+6. test_error_response_includes_message ✓
+7. test_error_response_includes_message_for_invalid ✓
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/api/dependencies.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: get_api_key function implemented
+4. ✓ file_contains: HTTPException import present
+5. ✓ file_contains: auth-test endpoint in routes.py
+6. ✓ tests_pass: All 7 tests in tests/test_api_auth.py pass
+
+All 6 evals passed successfully.
+
+### Learnings
+- FastAPI's Depends() in function defaults is the standard pattern for dependency injection
+- Ruff's B008 rule flags Depends() as "function call in defaults" but this is a false positive for FastAPI
+- Using # ruff: noqa: B008 at file level suppresses these warnings appropriately
+- The api_key_header = APIKeyHeader() pattern enables OpenAPI docs integration
+- Generator type moved from typing to collections.abc in Python 3.11+ (UP035 rule)
+- Dependency injection chain: get_db() → get_api_key() → route handler
+- The get_api_key dependency validates AND updates last_used_at in a single call
+- TestClient fixture creates/manages in-memory database for each test via conftest.py
+- All authentication logic centralized in one reusable dependency for DRY principle
+
+### New tasks created
+None - task 27 is already defined for /extract endpoint tests
+
