@@ -440,7 +440,7 @@
   "id": "32",
   "desc": "PHASE 5 - PROMPT 17: Integration Fixes & Polish (TDD GREEN)\n\nWHAT: Fix any integration issues and polish the codebase.\n\nWHERE: Various files as needed\n\nCONTEXT: Final implementation phase - make all tests pass and ensure production readiness.\n\nREQUIREMENTS:\n1. Fix any integration issues discovered:\n   - Ensure hikugen is properly imported and works\n   - Ensure database connections handled correctly (no leaks)\n   - Ensure async/sync boundaries handled correctly\n   - Ensure error messages are user-friendly\n\n2. Polish:\n   - Add proper error handling for all edge cases\n   - Ensure OpenAPI docs complete and accurate\n   - Add response examples to route docstrings\n   - Verify all ABOUTME comments in place\n\n3. Update main.py lifespan to initialize all database tables:\n   - create_api_keys_table()\n   - create_extraction_logs_table()\n\nVERIFICATION:\n1. Run ALL tests: uv run pytest -v\n2. Run linter: uv run ruff check src/ tests/\n3. Run formatter: uv run ruff format src/ tests/\n4. All tests must pass\n5. No linting errors\n\nCOMMIT: After tests pass with message like \"feat: complete integration and polish codebase\"",
   "deps": ["31"],
-  "status": "pending",
+  "status": "done",
   "evals": [
     {"type": "tests_pass", "paths": ["tests/"]},
     {"type": "cmd", "run": "cd /home/kyototech/projects/hikuweb && uv run ruff check src/ tests/ 2>&1 | tail -5"},

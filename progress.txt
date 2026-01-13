@@ -1908,3 +1908,63 @@ All 4 evals passed successfully.
 ### New tasks created
 None - task 32 is already defined for implementation phase (TDD GREEN)
 
+---
+## [32] PHASE 5 - PROMPT 17: Integration Fixes & Polish (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Fixed integration test failures and polished the codebase for production readiness:
+1. Added schema validation to catch unsupported JSON Schema types early (returns 400 instead of 500)
+2. Fixed test_multiple_api_keys_isolated to use the app's database connection instead of separate in-memory database
+3. Created SchemaValidationError exception for better error handling
+4. Ran linter and formatter to ensure clean code
+5. Verified all 175 tests pass with 3 skipped (requiring OPENROUTER_API_KEY)
+
+### Output/Results
+**Files Modified:**
+- src/hikuweb/services/schema_translator.py: Added validate_schema() function and SchemaValidationError class
+- src/hikuweb/api/routes.py: Added SchemaValidationError import and specific exception handling in extract endpoint
+- tests/test_integration.py: Fixed test_multiple_api_keys_isolated to use app's database
+- tests/test_api_extract.py: Removed unused imports (auto-fixed by ruff)
+
+**Schema Validation:**
+- Added VALID_TYPES constant: {"string", "integer", "number", "boolean", "object", "array"}
+- validate_schema() recursively validates nested properties and array items
+- Returns descriptive error messages like "Unsupported type 'date' at root.date. Supported types: array, boolean, integer, number, object, string"
+
+**Test Results:**
+- 175 tests passed
+- 3 tests skipped (require OPENROUTER_API_KEY environment variable)
+- 0 failures
+- All tests run in ~19 seconds
+
+**Code Quality:**
+- Linter: All checks passed (ruff check)
+- Formatter: All files formatted correctly (ruff format)
+- Build: Application imports successfully
+
+### Evals Run
+1. ✓ tests_pass: All 175 tests in tests/ directory pass
+2. ✓ cmd: ruff check returns "All checks passed!"
+3. ✓ build_succeeds: Application imports and runs correctly
+
+All 3 evals passed successfully.
+
+### Learnings
+- Integration tests need to use the actual app's database connection to ensure API keys exist when making requests
+- Catching specific exception types (SchemaValidationError) before generic Exception allows for appropriate HTTP status codes (400 vs 500)
+- Schema validation should happen early in the request pipeline to provide immediate feedback to users
+- The validate_schema() function recursively checks nested objects and arrays to catch invalid types at any depth
+- Pre-commit hooks automatically run linter and formatter, catching issues before they reach git history
+- Using the app's configured database_path in tests ensures consistency between test and production behavior
+
+### New tasks created
+None
+
+### Git commit
+Created commit 228ebef: "feat: complete integration and polish codebase"
+- Added schema validation with SchemaValidationError
+- Fixed test_multiple_api_keys_isolated database connection issue
+- All 175 tests passing with clean linting
+- Ready for production use
+
