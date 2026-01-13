@@ -1,25 +1,59 @@
 # hikuweb - Agent Development Guide
 
+## Quick Start
+
+```bash
+# 1. Install dependencies
+uv sync
+
+# 2. Set environment (create .env or export)
+export OPENROUTER_API_KEY="your-key-here"
+
+# 3. Start server
+uv run uvicorn hikuweb.main:app --reload
+
+# 4. Create an API key
+uv run python -c "
+from hikuweb.db.connection import DatabaseConnection
+from hikuweb.db.api_keys import create_api_keys_table
+from hikuweb.services.api_key_service import create_api_key
+with DatabaseConnection('hikuweb.db') as conn:
+    create_api_keys_table(conn)
+    print(create_api_key(conn, 'test-key'))
+"
+
+# 5. Test endpoints
+curl http://127.0.0.1:8000/health
+curl -H "X-API-Key: YOUR_KEY" http://127.0.0.1:8000/auth-test
+curl -X POST http://127.0.0.1:8000/extract \
+  -H "X-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com","schema":{"type":"object","properties":{"title":{"type":"string"}}}}'
+```
+
 ## Quick Reference Commands
 
 ```bash
-# Install/sync dependencies
-uv sync
+# Dependencies
+uv sync                              # install/sync dependencies
 
-# Run tests
-uv run pytest
-uv run pytest -v  # verbose
-uv run pytest tests/test_foo.py  # specific test file
-uv run pytest -k "test_name"  # specific test
+# Run server
+uv run uvicorn hikuweb.main:app --reload
 
-# Linting and formatting
-uv run ruff check src/ tests/  # check for issues
+# Tests
+uv run pytest                        # run all tests
+uv run pytest -v                     # verbose output
+uv run pytest tests/test_foo.py      # single test file
+uv run pytest -k "test_name"         # tests matching pattern
+uv run pytest -x                     # stop on first failure
+
+# Linting & Formatting
+uv run ruff check src/ tests/        # check for issues
 uv run ruff check --fix src/ tests/  # auto-fix issues
-uv run ruff format src/ tests/  # format code
+uv run ruff format src/ tests/       # format code
 
-# Pre-commit hooks
-pre-commit install  # install hooks
-pre-commit run --all-files  # run hooks on all files
+# Pre-commit
+pre-commit install                   # install hooks (required before first commit)
+pre-commit run --all-files           # run all hooks manually
 ```
 
 ## Project Structure
@@ -27,72 +61,65 @@ pre-commit run --all-files  # run hooks on all files
 ```
 hikuweb/
 ├── src/hikuweb/
-│   ├── __init__.py
-│   ├── config.py              # Configuration management
-│   ├── api/                   # FastAPI routes and endpoints
-│   ├── services/              # Business logic layer
-│   │   ├── api_key_service.py
-│   │   ├── schema_translator.py
-│   │   ├── robots.py
-│   │   └── rate_limiter.py
-│   └── db/                    # Database layer
-│       ├── connection.py
-│       ├── api_keys.py
-│       └── extraction_logs.py
-├── tests/                     # Test suite
-└── pyproject.toml             # Project configuration
+│   ├── config.py              # Settings via pydantic-settings
+│   ├── main.py                # FastAPI app entrypoint
+│   ├── api/                   # Routes, dependencies, request/response models
+│   ├── services/              # Business logic (api_key, extraction, rate_limiter, robots)
+│   └── db/                    # SQLite data access layer
+├── tests/                     # Pytest test suite
+└── pyproject.toml             # Project config, ruff settings
 ```
 
-## Code Style Guidelines
+## Code Style
 
 ### ABOUTME Comments
 All Python source files MUST start with a 2-line comment explaining the file's purpose:
-
 ```python
 # ABOUTME: Brief description of what this file does.
 # ABOUTME: Additional context or purpose explanation.
 ```
 
-This format makes it easy to grep for file purposes: `grep "ABOUTME:" src/**/*.py`
+### Ruff Configuration
+- **Line length**: 100 characters
+- **Target**: Python 3.11+
+- **Lint rules**: E, F, I, N, W, UP, B, C4, SIM (E501 ignored)
+- **Quote style**: Double quotes
+- **Import sorting**: Handled automatically by ruff
 
-### Import Ordering
-Organize imports in three groups (ruff handles this automatically):
-1. Standard library imports
-2. Third-party imports
-3. Local/application imports
-
+### Import Order
 ```python
-# Standard library
+# 1. Standard library
 import time
-from typing import Optional
+from typing import Any
 
-# Third-party
-from fastapi import APIRouter
+# 2. Third-party
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-# Local
+# 3. Local
 from hikuweb.config import get_settings
 from hikuweb.db.connection import DatabaseConnection
 ```
 
 ### Type Annotations
-All function signatures MUST include type annotations:
-
+All functions MUST have complete type annotations:
 ```python
 def process_data(input_str: str, count: int = 10) -> dict[str, Any]:
-    """Process input data and return results."""
     ...
 ```
 
-### Docstrings
-Use Google-style docstrings for functions and classes:
+### Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| Functions/variables | snake_case | `validate_api_key` |
+| Classes | PascalCase | `DatabaseConnection` |
+| Constants | UPPER_SNAKE_CASE | `TYPE_MAP` |
+| Private members | _leading_underscore | `_last_request` |
 
+### Docstrings (Google Style)
 ```python
 def complex_function(param1: str, param2: int) -> bool:
     """Short one-line summary.
-
-    Longer description if needed, explaining what the function does,
-    any important considerations, etc.
 
     Args:
         param1: Description of param1.
@@ -104,94 +131,104 @@ def complex_function(param1: str, param2: int) -> bool:
     Raises:
         ValueError: When param2 is negative.
     """
-    ...
 ```
 
-### Naming Conventions
-- **Functions/variables**: `snake_case`
-- **Classes**: `PascalCase`
-- **Constants**: `UPPER_SNAKE_CASE`
-- **Private members**: `_leading_underscore`
+## Error Handling Patterns
+
+### Custom Exceptions
+Define domain-specific exceptions inheriting from standard types:
+```python
+class SchemaValidationError(ValueError):
+    """Raised when JSON Schema contains invalid or unsupported types."""
+```
+
+### API Errors (FastAPI)
+Use `HTTPException` with appropriate status codes:
+```python
+raise HTTPException(status_code=400, detail="Schema must not be empty")
+raise HTTPException(status_code=403, detail=f"Blocked by robots.txt: {reason}")
+raise HTTPException(status_code=429, detail="Rate limit exceeded for this domain")
+raise HTTPException(status_code=500, detail=f"Extraction failed: {e}") from e
+```
+
+### Internal State Errors
+Use `RuntimeError` for programming errors / invalid state:
+```python
+if not self._cursor:
+    raise RuntimeError("Connection not opened. Use 'with' statement.")
+```
+
+### Return None for "Not Found"
+For lookup functions, return `None` instead of raising:
+```python
+def validate_api_key(conn: DatabaseConnection, raw_key: str) -> dict | None:
+    ...
+    if key_record is None:
+        return None
+```
 
 ## Testing Guidelines
 
 ### TDD Workflow
-We follow Test-Driven Development:
-1. **RED**: Write failing tests first
-2. **GREEN**: Write minimal code to pass tests
-3. **REFACTOR**: Improve code while keeping tests green
+1. **RED**: Write failing test first
+2. **GREEN**: Write minimal code to pass
+3. **REFACTOR**: Improve while keeping tests green
 
-### Test Structure
-Use the Arrange-Act-Assert pattern:
-
+### Test Structure (Arrange-Act-Assert)
 ```python
-def test_something(db_connection):
-    """Should do something specific when condition is met."""
-    # Arrange
-    setup_data = prepare_test_data()
-    
-    # Act
-    result = function_under_test(setup_data)
-    
-    # Assert
-    assert result == expected_value
+class TestGenerateApiKey:
+    """Tests for generate_api_key function."""
+
+    def test_returns_32_char_string(self):
+        """Should return 32 character alphanumeric string."""
+        # Arrange (if needed)
+
+        # Act
+        key = generate_api_key()
+
+        # Assert
+        assert isinstance(key, str)
+        assert len(key) == 32
 ```
 
-### Fixtures
-Use pytest fixtures for reusable test setup (defined in `tests/conftest.py`):
-
+### Fixtures (in `tests/conftest.py`)
 ```python
 @pytest.fixture
 def db_connection():
     """Provides an in-memory database connection for testing."""
-    conn = DatabaseConnection(":memory:")
-    yield conn
-    # Cleanup happens here
+    with DatabaseConnection(":memory:") as conn:
+        yield conn
 ```
 
 ### Async Tests
-Mark async tests with `@pytest.mark.asyncio`:
-
 ```python
 @pytest.mark.asyncio
 async def test_async_operation():
-    """Test asynchronous operation."""
     result = await async_function()
     assert result is not None
 ```
 
-### Mocking
-Use `unittest.mock` for external dependencies:
-
+### Mocking External Dependencies
 ```python
 from unittest.mock import AsyncMock, patch
 
 @pytest.mark.asyncio
 async def test_with_mock():
-    """Test with mocked HTTP client."""
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.get = AsyncMock(return_value=mock_response)
         result = await function_that_uses_httpx()
-        assert result == expected
 ```
 
 ## Environment Variables
 
-The following environment variables are used by hikuweb:
-
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_PATH` | `hikuweb.db` | Path to SQLite database file |
-| `OPENROUTER_API_KEY` | None | API key for OpenRouter (required for extractions) |
-| `RATE_LIMIT_REQUESTS_PER_SECOND` | `1.0` | Rate limit for requests per domain |
-| `ROBOTS_CACHE_TTL_SECONDS` | `3600` | Cache TTL for robots.txt files |
+| `DATABASE_PATH` | `hikuweb.db` | SQLite database path |
+| `OPENROUTER_API_KEY` | None | Required for extractions |
+| `RATE_LIMIT_REQUESTS_PER_SECOND` | `1.0` | Per-domain rate limit |
+| `ROBOTS_CACHE_TTL_SECONDS` | `3600` | robots.txt cache TTL |
 
-Set these in a `.env` file or export them in your shell:
-
-```bash
-export OPENROUTER_API_KEY="your-api-key-here"
-export DATABASE_PATH="./data/hikuweb.db"
-```
+Set in `.env` file or export in shell.
 
 ## Architecture Notes
 
