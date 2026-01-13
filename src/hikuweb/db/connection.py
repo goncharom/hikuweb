@@ -20,7 +20,9 @@ class DatabaseConnection:
 
     def __enter__(self) -> "DatabaseConnection":
         """Open database connection when entering context."""
-        self._conn = sqlite3.connect(self.db_path)
+        # check_same_thread=False allows FastAPI threadpool usage
+        # This is safe because each endpoint call gets its own connection
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._cursor = self._conn.cursor()
         return self
 
