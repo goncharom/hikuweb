@@ -280,21 +280,24 @@ class TestFullExtractionFlow:
         assert updated_usage["total_extractions"] == initial_total + 1
         assert updated_usage["average_duration_ms"] is not None
 
-    def test_multiple_api_keys_isolated(self, client, db_connection):
+    def test_multiple_api_keys_isolated(self, client):
         """Should isolate usage stats between different API keys.
 
         Verifies:
         1. Each API key only sees its own extractions
         2. Usage stats are properly scoped
         """
-        # Arrange - Create two API keys
+        # Arrange - Create two API keys using the app's database
+        from hikuweb.config import get_settings
         from hikuweb.db.api_keys import create_api_keys_table
+        from hikuweb.db.connection import get_db_connection
         from hikuweb.services.api_key_service import create_api_key
 
-        create_api_keys_table(db_connection)
-
-        key1 = create_api_key(db_connection, "Test Key 1")
-        key2 = create_api_key(db_connection, "Test Key 2")
+        settings = get_settings()
+        with get_db_connection(settings.database_path) as conn:
+            create_api_keys_table(conn)
+            key1 = create_api_key(conn, "Test Key 1")
+            key2 = create_api_key(conn, "Test Key 2")
 
         headers1 = {"X-API-Key": key1}
         headers2 = {"X-API-Key": key2}

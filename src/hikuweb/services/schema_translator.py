@@ -12,6 +12,43 @@ TYPE_MAP = {
     "boolean": bool,
 }
 
+VALID_TYPES = {"string", "integer", "number", "boolean", "object", "array"}
+
+
+class SchemaValidationError(ValueError):
+    """Raised when JSON Schema contains invalid or unsupported types."""
+
+
+def validate_schema(schema: dict, path: str = "root") -> None:
+    """Validate JSON Schema for unsupported types.
+
+    Args:
+        schema: JSON Schema object definition to validate.
+        path: Current path in schema (for error messages).
+
+    Raises:
+        SchemaValidationError: If schema contains unsupported types.
+    """
+    schema_type = schema.get("type")
+
+    if schema_type and schema_type not in VALID_TYPES:
+        raise SchemaValidationError(
+            f"Unsupported type '{schema_type}' at {path}. "
+            f"Supported types: {', '.join(sorted(VALID_TYPES))}"
+        )
+
+    # Validate nested properties for object types
+    if schema_type == "object":
+        properties = schema.get("properties", {})
+        for prop_name, prop_schema in properties.items():
+            validate_schema(prop_schema, f"{path}.{prop_name}")
+
+    # Validate array items
+    if schema_type == "array":
+        items = schema.get("items", {})
+        if items:
+            validate_schema(items, f"{path}[]")
+
 
 def _map_primitive_type(prop: dict) -> Any:
     """Map JSON Schema type to Python type.
@@ -73,6 +110,9 @@ def json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> t
     Returns:
         Dynamically created Pydantic model class.
 
+    Raises:
+        SchemaValidationError: If schema contains unsupported types.
+
     Example:
         >>> schema = {
         ...     "type": "object",
@@ -85,6 +125,9 @@ def json_schema_to_pydantic(schema: dict, model_name: str = "DynamicModel") -> t
         >>> Model = json_schema_to_pydantic(schema)
         >>> instance = Model(name="Alice", age=30)
     """
+    # Validate schema before processing
+    validate_schema(schema)
+
     properties = schema.get("properties", {})
     required = set(schema.get("required", []))
 

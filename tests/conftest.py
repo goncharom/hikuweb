@@ -74,3 +74,16 @@ def inactive_api_key(client):
         if key_record:
             deactivate_api_key(conn, key_record["id"])
     return raw_key
+
+
+@pytest.fixture
+def auth_headers(test_api_key):
+    """Provides HTTP headers with valid API key for authenticated requests.
+
+    Args:
+        test_api_key: Raw API key from test_api_key fixture.
+
+    Returns:
+        dict: Headers dict with X-API-Key set to valid test key.
+    """
+    return {"X-API-Key": test_api_key}

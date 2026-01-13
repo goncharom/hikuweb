@@ -20,6 +20,7 @@ from hikuweb.db.extraction_logs import get_logs_by_api_key, get_usage_stats, ins
 from hikuweb.services.extraction import ExtractionService
 from hikuweb.services.rate_limiter import DomainRateLimiter
 from hikuweb.services.robots import RobotsChecker
+from hikuweb.services.schema_translator import SchemaValidationError
 
 router = APIRouter()
 
@@ -185,6 +186,9 @@ async def extract(
         db.commit()
 
         return ExtractResponse(data=extracted_data, duration_ms=duration_ms)
+    except SchemaValidationError as e:
+        # Schema validation errors are client errors (400)
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
 
