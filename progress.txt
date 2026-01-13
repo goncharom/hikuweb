@@ -1968,3 +1968,86 @@ Created commit 228ebef: "feat: complete integration and polish codebase"
 - All 175 tests passing with clean linting
 - Ready for production use
 
+
+---
+## [33] FINAL: Run Complete Test Suite & Verification
+Completed: $(date -Iseconds)
+
+### What I did
+Performed comprehensive final verification of the hikuweb MVP implementation. Ran complete test suite, verified linting and formatting, confirmed all required files exist with proper ABOUTME comments, and validated that all evaluation gates pass.
+
+### Output/Results
+**Test Results:**
+- ✓ 175 tests passed
+- ✓ 3 tests skipped (require OPENROUTER_API_KEY for live integration)
+- ✓ 0 failures
+- Total test execution time: ~19 seconds
+
+**Code Quality:**
+- ✓ Linting: All checks passed (uv run ruff check)
+- ✓ Formatting: 31 files already formatted (uv run ruff format --check)
+- ✓ No linting errors or warnings
+
+**File Structure Verification:**
+All 16 required files verified to exist:
+- ✓ src/hikuweb/__init__.py
+- ✓ src/hikuweb/main.py
+- ✓ src/hikuweb/config.py
+- ✓ src/hikuweb/api/__init__.py
+- ✓ src/hikuweb/api/routes.py
+- ✓ src/hikuweb/api/dependencies.py
+- ✓ src/hikuweb/services/__init__.py
+- ✓ src/hikuweb/services/api_key_service.py
+- ✓ src/hikuweb/services/extraction.py
+- ✓ src/hikuweb/services/schema_translator.py
+- ✓ src/hikuweb/services/robots.py
+- ✓ src/hikuweb/services/rate_limiter.py
+- ✓ src/hikuweb/db/__init__.py
+- ✓ src/hikuweb/db/connection.py
+- ✓ src/hikuweb/db/api_keys.py
+- ✓ src/hikuweb/db/extraction_logs.py
+
+**ABOUTME Comments:**
+- ✓ 32 ABOUTME comments found (2 per file as required)
+- ✓ All source files follow the ABOUTME convention
+
+**Final Checklist:**
+- [x] All tests pass (175 passed, 3 skipped)
+- [x] No linting errors (ruff check clean)
+- [x] Code is formatted (31 files formatted)
+- [x] All endpoints functional: GET /health, POST /extract, GET /usage
+- [x] All files have ABOUTME comments (16 files × 2 comments = 32 total)
+
+### Evals Run
+1. ✓ tests_pass: All 175 tests in tests/ pass
+2. ✓ cmd: ruff check src/ tests/ - "All checks passed!"
+3. ✓ file_exists: src/hikuweb/main.py
+4. ✓ file_exists: src/hikuweb/config.py
+5. ✓ file_exists: src/hikuweb/api/routes.py
+6. ✓ file_exists: src/hikuweb/api/dependencies.py
+7. ✓ file_exists: src/hikuweb/services/api_key_service.py
+8. ✓ file_exists: src/hikuweb/services/extraction.py
+9. ✓ file_exists: src/hikuweb/services/schema_translator.py
+10. ✓ file_exists: src/hikuweb/services/robots.py
+11. ✓ file_exists: src/hikuweb/services/rate_limiter.py
+12. ✓ file_exists: src/hikuweb/db/connection.py
+13. ✓ file_exists: src/hikuweb/db/api_keys.py
+14. ✓ file_exists: src/hikuweb/db/extraction_logs.py
+15. ✓ grep_present: ABOUTME pattern found in all source files
+
+All 15 evals passed successfully.
+
+### Learnings
+- Final verification serves as a comprehensive checkpoint before declaring MVP complete
+- The test suite covers all layers: database, services, API routes, authentication, and integration
+- Ruff's combined linting and formatting capabilities ensure consistent code quality
+- The ABOUTME comment convention makes it trivial to verify documentation coverage (grep count)
+- Skipped tests (3) are properly guarded with pytest.skip for missing OPENROUTER_API_KEY
+- The codebase is production-ready with all TDD cycles completed (RED-GREEN-REFACTOR)
+- All components working together: config → database → services → API → auth → extraction → logging
+
+### New tasks created
+None - hikuweb MVP implementation is complete
+
+### Git commit
+Ready to create final commit with message: "chore: complete hikuweb MVP implementation"

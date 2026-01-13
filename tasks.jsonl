@@ -452,7 +452,7 @@
   "id": "33",
   "desc": "FINAL: Run Complete Test Suite & Verification\n\nWHAT: Final verification that everything works together.\n\nWHERE: Entire codebase\n\nCONTEXT: Final checkpoint before completion.\n\nREQUIREMENTS:\n1. Run complete test suite: uv run pytest -v\n   - All tests must pass\n\n2. Run linter: uv run ruff check src/ tests/\n   - No errors\n\n3. Run formatter: uv run ruff format src/ tests/ --check\n   - All files formatted\n\n4. Verify file structure matches plan:\n   - src/hikuweb/__init__.py\n   - src/hikuweb/main.py\n   - src/hikuweb/config.py\n   - src/hikuweb/api/__init__.py\n   - src/hikuweb/api/routes.py\n   - src/hikuweb/api/dependencies.py\n   - src/hikuweb/services/__init__.py\n   - src/hikuweb/services/api_key_service.py\n   - src/hikuweb/services/extraction.py\n   - src/hikuweb/services/schema_translator.py\n   - src/hikuweb/services/robots.py\n   - src/hikuweb/services/rate_limiter.py\n   - src/hikuweb/db/__init__.py\n   - src/hikuweb/db/connection.py\n   - src/hikuweb/db/api_keys.py\n   - src/hikuweb/db/extraction_logs.py\n\n5. Verify all files have ABOUTME comments\n\n6. Final checklist:\n   - [ ] All tests pass\n   - [ ] No linting errors\n   - [ ] Code is formatted\n   - [ ] OpenAPI docs work (http://localhost:8000/docs)\n   - [ ] All endpoints functional: GET /health, POST /extract, GET /usage\n   - [ ] All files have ABOUTME comments\n\nCOMMIT: Final commit with message like \"chore: complete hikuweb MVP implementation\"",
   "deps": ["32"],
-  "status": "pending",
+  "status": "done",
   "evals": [
     {"type": "tests_pass", "paths": ["tests/"]},
     {"type": "cmd", "run": "cd /home/kyototech/projects/hikuweb && uv run ruff check src/ tests/"},
