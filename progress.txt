@@ -1583,3 +1583,167 @@ All 6 evals passed successfully.
 ### New tasks created
 None - task 27 is already defined for /extract endpoint tests
 
+---
+## [27] Extract Endpoint - WRITE TESTS FIRST (TDD RED)
+Completed: 2026-01-12T13:52:58-08:00
+
+### What I did
+Created comprehensive test suite for the POST /extract endpoint following TDD RED phase. Wrote 15 failing test methods across 6 test classes covering all aspects of the main extraction endpoint: authentication, request validation, robots.txt compliance, rate limiting, successful extraction, error handling, and database logging.
+
+### Output/Results
+Created tests/test_api_extract.py with 330 lines containing 15 test methods:
+
+**Test Classes and Coverage:**
+1. TestExtractEndpointAuth (1 test):
+   - test_extract_without_auth_returns_401: Verifies 401 when X-API-Key header missing
+
+2. TestExtractEndpointValidation (4 tests):
+   - test_extract_missing_url_returns_422: Verifies 422 when url field missing
+   - test_extract_missing_schema_returns_422: Verifies 422 when schema field missing
+   - test_extract_invalid_url_format_returns_422: Verifies 422 for invalid URL format
+   - test_extract_empty_schema_returns_400: Verifies 400 for empty schema dict
+
+3. TestExtractEndpointRobots (2 tests):
+   - test_extract_robots_blocked_returns_403: Verifies 403 when robots.txt blocks URL
+   - test_extract_robots_allowed_proceeds: Verifies request proceeds when robots.txt allows
+
+4. TestExtractEndpointRateLimit (2 tests):
+   - test_extract_rate_limited_returns_429: Verifies 429 when domain is rate limited
+   - test_extract_rate_limit_allowed_proceeds: Verifies request proceeds when rate limit allows
+
+5. TestExtractEndpointSuccess (3 tests):
+   - test_extract_success_returns_200: Verifies 200 with extracted data on success
+   - test_extract_includes_metadata: Verifies response includes duration_ms metadata
+   - test_extract_error_returns_500: Verifies 500 when extraction service fails
+
+6. TestExtractEndpointLogging (3 tests):
+   - test_extract_success_logged_to_database: Verifies successful extraction logged
+   - test_extract_blocked_logged_to_database: Verifies blocked extraction logged
+   - test_extract_error_logged_to_database: Verifies error extraction logged
+
+**Key Features Tested:**
+- Authentication via X-API-Key header (401 errors)
+- Request validation (422 validation errors, 400 bad request)
+- Robots.txt compliance checking (403 forbidden)
+- Per-domain rate limiting (429 too many requests)
+- Successful extraction with metadata (200 OK, duration_ms)
+- Error handling (500 internal server error)
+- Database logging for all extraction attempts (success, blocked, error)
+- Mocking of ExtractionService, RobotsChecker, DomainRateLimiter for unit tests
+
+Updated tests/conftest.py with auth_headers fixture that provides {"X-API-Key": <valid-key>} headers for authenticated requests.
+
+All 15 tests properly fail with expected errors:
+- Most fail with 404 (endpoint doesn't exist yet)
+- Some fail with AttributeError (hikuweb.services.extraction module doesn't exist yet)
+
+This is the expected TDD RED behavior - tests define the API contract before implementation.
+
+### Evals Run
+1. ✓ file_exists: tests/test_api_extract.py exists
+2. ✓ file_contains: ABOUTME comment present (2 lines at top)
+3. ✓ file_contains: "/extract" endpoint referenced
+4. ✓ file_contains: "401" status code tested
+5. ✓ file_contains: "422" status code tested
+6. ✓ file_contains: "mock" - uses unittest.mock for testing
+
+All 6 evals passed successfully.
+
+### Learnings
+- TDD RED phase creates comprehensive specification via 15 failing tests before implementation
+- Testing the main endpoint requires mocking all dependencies: RobotsChecker, DomainRateLimiter, ExtractionService
+- Using unittest.mock.patch allows testing different code paths without implementing services
+- Testing both positive cases (success) and negative cases (blocked, rate limited, errors) ensures robustness
+- The extract endpoint is the orchestration layer that coordinates: auth → robots check → rate limit → extract → log
+- Database logging verification can be done by checking /usage endpoint after operations
+- Using descriptive test class names (TestExtractEndpointAuth, TestExtractEndpointValidation, etc.) organizes tests by concern
+- The auth_headers fixture simplifies authenticated test requests
+- 404 responses in TDD RED indicate endpoint doesn't exist - this is expected and correct
+- Next task (28) will implement the endpoint to make these tests pass (TDD GREEN)
+
+### New tasks created
+None - task 28 is already defined for implementation phase (TDD GREEN)
+
+---
+## [28] Extract Endpoint - IMPLEMENT (TDD GREEN)
+Completed: $(date -Iseconds)
+
+### What I did
+Implemented the POST /extract endpoint following TDD GREEN phase to make all 15 tests from task 27 pass. Created a comprehensive extraction service that wires together authentication, robots.txt compliance, rate limiting, schema translation, and hikugen extraction. Also implemented the GET /usage endpoint to support logging verification tests.
+
+### Output/Results
+Created src/hikuweb/services/extraction.py (51 lines):
+- ExtractionService class wrapping hikugen library
+- extract() method converts JSON schema to Pydantic model and calls hikugen
+- Proper error handling and type annotations
+
+Updated src/hikuweb/api/routes.py (+241 lines):
+- ExtractRequest model with URL validation and schema_ field (aliased as "schema")
+- ExtractResponse model with extracted data and duration metadata
+- POST /extract endpoint with complete flow:
+  * Empty schema validation (400 error)
+  * Robots.txt compliance checking (403 if blocked)
+  * Rate limiting per domain (429 if exceeded)
+  * Extraction with hikugen
+  * Comprehensive logging (success, error, blocked status)
+- UsageResponse and ExtractionLogSummary models
+- GET /usage endpoint returning aggregated stats and recent extractions
+
+Updated src/hikuweb/api/dependencies.py (+38 lines):
+- get_robots_checker() singleton dependency
+- get_rate_limiter() singleton dependency  
+- get_extraction_service() singleton dependency with test-friendly API key handling
+- All use @lru_cache for singleton pattern
+
+Fixed src/hikuweb/db/connection.py:
+- Added check_same_thread=False to SQLite connection for FastAPI threadpool compatibility
+- This is safe because each endpoint call gets its own connection via dependency injection
+
+All 15 extract endpoint tests pass:
+1. test_extract_without_auth_returns_401 - ✓
+2. test_extract_missing_url_returns_422 - ✓  
+3. test_extract_missing_schema_returns_422 - ✓
+4. test_extract_invalid_url_format_returns_422 - ✓
+5. test_extract_empty_schema_returns_400 - ✓
+6. test_extract_robots_blocked_returns_403 - ✓
+7. test_extract_robots_allowed_proceeds - ✓
+8. test_extract_rate_limited_returns_429 - ✓
+9. test_extract_rate_limit_allowed_proceeds - ✓
+10. test_extract_success_returns_200 - ✓
+11. test_extract_includes_metadata - ✓
+12. test_extract_error_returns_500 - ✓
+13. test_extract_success_logged_to_database - ✓
+14. test_extract_blocked_logged_to_database - ✓
+15. test_extract_error_logged_to_database - ✓
+
+All 161 total tests pass.
+
+### Evals Run
+1. ✓ file_exists: src/hikuweb/services/extraction.py exists
+2. ✓ file_contains: ABOUTME comment present
+3. ✓ file_contains: ExtractionService class implemented
+4. ✓ file_contains: /extract endpoint in routes.py
+5. ✓ file_contains: ExtractRequest model exists
+6. ✓ file_contains: get_robots_checker dependency exists
+7. ✓ tests_pass: All 15 tests in tests/test_api_extract.py pass
+
+All 7 evals passed successfully.
+
+### Learnings
+- FastAPI runs endpoints in a threadpool, requiring check_same_thread=False for SQLite
+- Pydantic Field aliases allow avoiding BaseModel method name conflicts (schema vs schema_)
+- Using @lru_cache for singleton dependencies is clean and efficient
+- Test-friendly dependencies should handle missing env vars gracefully (dummy values for testing)
+- The extract endpoint successfully integrates all 5 services: auth, robots, rate limiting, schema translation, and extraction
+- Comprehensive logging (success/error/blocked) is critical for usage tracking and debugging
+- Exception chaining with "from e" is required by ruff B904 for proper error context
+- Adding GET /usage endpoint early enables logging verification tests to pass
+
+### New tasks created
+None - this completes task 28 from the existing task graph
+
+### Git commit
+Created commit e569327: "feat: implement POST /extract endpoint with extraction service"
+- Added 4 files: extraction.py, routes.py updates, dependencies.py updates, connection.py fix
+- 301 insertions, 4 deletions
+- Pre-commit hooks passed: ruff check and ruff-format both successful
